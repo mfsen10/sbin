@@ -113,7 +113,7 @@ if (($SetChannel -notin $validopt)){
 		}else{
 			$CurrentChannelName = "UNKNOWN"
 			Write-Host ""
-			Write-Host -ForegroundColor red "Current ODT Channel set: $CurrrentChannelName"
+			Write-Host -ForegroundColor red "Current ODT Channel set: $CurrentChannelName"
 			Write-Host ""
 		}
 	}
