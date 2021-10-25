@@ -187,9 +187,9 @@ switch ($channel) {
 	}
 }
 
-$validswitch ="1","2","3","4","5",'6'
+$validopt ="1","2","3","4","5",'6'
 
-if ($channel -in $validswitch) {
+if ($channel -in $validopt) {
 	#force null response to quit
 	# query up the C2R installer config's value for null, which would imply it's not an active C2R instance, maybe MSI-based?
 	reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl
