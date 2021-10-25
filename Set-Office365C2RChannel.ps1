@@ -3,7 +3,7 @@
 		Set-Office365C2RChannel modifies Office 365 Click to Run Update Channel
 
 	.DESCRIPTION
-		Modifies Office 365 Click to Run Update Channel. Takes channel option from CLI or requests it in runtime. 
+		Modifies Office 365 Click to Run Update Channel. Takes channel option from CLI or requests it in runtime.
 
 	.PARAMETER SetChannel
 			Specifies channel option to set and update to.
@@ -23,11 +23,11 @@
 	           Accept wildcard characters?
 
 	.LINK
-	Gr33tz: 
+	Gr33tz:
 	The Wayback project (technet why you delete doc? T__T) https://web.archive.org/web/20190420045307/https://blogs.technet.microsoft.com/odsupport/2014/03/03/the-new-update-now-feature-for-office-2013-click-to-run-for-office365-and-its-associated-command-line-and-switches/
 	@ComDannyda : https://dannyda.com/2020/05/06/how-to-switch-change-between-monthly-channel-and-semi-annual-channel-for-office-365-office-2019-how-to-switch-update-channel-for-office-365-office-2019/
 	PatrickTeas@Comsense:https://support.comsenseinc.com/hc/en-us/articles/360006783014-How-to-Determine-and-Change-your-Office-365-Update-Channel
-	DaveGunther@MS:https://techcommunity.microsoft.com/t5/office-365-blog/understanding-office-365-proplus-updates-for-it-pros-cdn-vs-sccm/ba-p/795728 
+	DaveGunther@MS:https://techcommunity.microsoft.com/t5/office-365-blog/understanding-office-365-proplus-updates-for-it-pros-cdn-vs-sccm/ba-p/795728
 	The FMS Dev Team: https://www.fmsinc.com/microsoft-office/change-office-365-channel.html
 	- The PowersHELL Team@MS for producing a functional shell
 	- Countless SOFlowers
@@ -65,12 +65,77 @@ function Show-Menu{
 
 if (($SetChannel -eq "0") -or ($SetChannel -eq 0) -or ($SetChannel -eq $null)){
 	Show-Menu
-	$channel = Read-Host "Please make a selection"	
+	$CurrentChannel = Get-ItemPropertyValue HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name CDNBaseUrl
+	switch ($CurrentChannel) {
+		'http://officecdn.microsoft.com/pr/55336b82-a18d-4dd6-b5f6-9e5095c314a6' {
+
+			$CurrentChannelName = "MonthlyEnterprise"
+			Write-Host ""
+			Write-Host -ForegroundColor magenta "Current ODT Channel set: $CurrentChannelName"
+			Write-Host ""
+
+		} 'http://officecdn.microsoft.com/pr/64256afe-f5d9-4f86-8936-8840a6a4f5be' {
+
+			$CurrentChannelName = "CurrentPreview"
+			Write-Host ""
+			Write-Host -ForegroundColor magenta "Current ODT Channel set: $CurrentChannelName"
+			Write-Host ""
+
+		} 'http://officecdn.microsoft.com/pr/492350f6-3a01-4f97-b9c0-c7c6ddf67d60' {
+
+			$CurrentChannelName = "Current"
+			Write-Host ""
+			Write-Host -ForegroundColor magenta "Current ODT Channel set: $CurrentChannelName"
+			Write-Host ""
+
+		} 'http://officecdn.microsoft.com/pr/5440fd1f-7ecb-4221-8110-145efaa6372f' {
+
+			$CurrentChannelName = "Beta"
+			Write-Host ""
+			Write-Host -ForegroundColor magenta "Current ODT Channel set: $CurrentChannelName"
+			Write-Host ""
+
+		} 'http://officecdn.microsoft.com/pr/b8f9b850-328d-4355-9145-c59439a0c4cf' {
+
+			$CurrentChannelName = "SemiAnnualPreview"
+			Write-Host ""
+			Write-Host -ForegroundColor magenta "Current ODT Channel set: $CurrentChannelName"
+			Write-Host ""
+
+		} 'http://officecdn.microsoft.com/pr/7ffbc6bf-bc32-4f92-8982-f9dd17fd3114' {
+
+			$CurrentChannelName = "SemiAnnual"
+			Write-Host ""
+			Write-Host -ForegroundColor magenta "Current ODT Channel set: $CurrentChannelName"
+			Write-Host ""
+
+		}else{
+			$CurrentChannelName = "SemiAnnual"
+			Write-Host ""
+			Write-Host -ForegroundColor red "Current ODT Channel set: UNKNOWN"
+			Write-Host ""
+		}
+	}
+	$CurrentGPOChannel = Get-ItemPropertyValue HKLM:\SOFTWARE\Policies\Microsoft\office\16.0\common\officeupdate -Name UpdateBranch
+	$validCGPOChan = "CurrentPreview","Current","Beta","SemiAnnualPreview","SemiAnnual","SemiAnnual", "MonthlyEnterprise"
+	if (($CurrentGPOChannel -notin $validCGPOChan)){
+		Write-Host -ForegroundColor red "Current GPO Channel set: UNKNOWN"
+		Write-Host ""
+	}else{
+		Write-Host ""
+		Write-Host -ForegroundColor magenta "Current GPO Channel set: $CurrentGPOChannel"
+		Write-Host ""
+	}
+
+	$channel = Read-Host "Please make a selection"
 	$argwrite = "FALSE";
 }else{
 	$argwrite = "TRUE";
 	$channel = $SetChannel;
 }
+
+
+
 
 switch ($channel) {
 	'1' {
@@ -126,21 +191,21 @@ $validswitch ="1","2","3","4","5",'6'
 
 if ($channel -in $validswitch) {
 	#force null response to quit
-	# query up the C2R installer config's value for null, which would imply it's not an active C2R instance, maybe MSI-based? 
-	reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl 
+	# query up the C2R installer config's value for null, which would imply it's not an active C2R instance, maybe MSI-based?
+	reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl
 	if ( ('true' -eq $?) -and (0 -eq $LASTEXITCODE) ) {
 
-		# pin the low-priority c2r install configuration to selected Channel  
+		# pin the low-priority c2r install configuration to selected Channel
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration  -Name CDNBaseUrl -PropertyType String -Value $ChannelCDN -force|Out-Null
 		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateUrl /f|Out-Null
 		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateToVersion /f|Out-Null
 		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Updates /v UpdateToVersion /f|Out-Null
 		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Office\16.0\Common\OfficeUpdate\ /f|Out-Null
-		
+
 		# Pin C2R's hi-pri GPO reg's to ME channel
 		New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\office\16.0\common\ -Name officeupdate -force |Out-Null
 		New-ItemProperty -Path HKLM:\SOFTWARE\Policies\Microsoft\office\16.0\common\officeupdate -Name updatebranch -PropertyType String -Value $UpdateChannel |Out-Null
-		
+
 		# Tell c2r to change channels however its undocumentedly ways work, and then go git gud
 		start "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" -ArgumentList "/changeSetting Channel=$channel"
 		saps "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" -ArgumentList "/update user displaylevel=false forceappshutdown=true"
@@ -148,14 +213,14 @@ if ($channel -in $validswitch) {
 
 		if ( ('true' -eq $?) -and (0 -eq $LASTEXITCODE) ) {
 			write-host -ForegroundColor green "		###########################################################################################
-			 PASS - UpdateChannel set to $Updatechannel, forcing background update now 
+			 PASS - UpdateChannel set to $Updatechannel, forcing background update now
 		###########################################################################################
 			"
 			sleep 2;
 			exit 0;
 		}else{
 			write-host -ForegroundColor red  "		###########################################################################################
-		     TEST - MUST PASS  posh operation success and win32app exiterr                
+		     TEST - MUST PASS  posh operation success and win32app exiterr
 		###########################################################################################
 
 		Some riffraff happened!
@@ -167,12 +232,12 @@ if ($channel -in $validswitch) {
 		WX : $LASTEXITCODE
 		Exit 7.
 		"
-		sleep 5; 
-		exit 2; 
+		sleep 5;
+		exit 2;
 		}
 	}else{
 		write-host -ForegroundColor magenta "		###########################################################################################
-		Channel CDN was not set - invalid Office version or corrupted install        
+		Channel CDN was not set - invalid Office version or corrupted install
 		###########################################################################################
 		"
 		write-host -ForegroundColor red "
@@ -186,15 +251,15 @@ if ($channel -in $validswitch) {
 		exit 0;
 }
 #Batch Equivalent style
-#::setlocal 
-#::reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration\ /v CDNBaseUrl 
-#::if %errorlevel%==0 (goto SwitchChannel) else (goto End) 
-#:::SwitchChannel 
+#::setlocal
+#::reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration\ /v CDNBaseUrl
+#::if %errorlevel%==0 (goto SwitchChannel) else (goto End)
+#:::SwitchChannel
 #::reg add HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v CDNBaseUrl /t REG_SZ /d "http://officecdn.microsoft.com/pr/7ffbc6bf-bc32-4f92-8982-f9dd17fd3114" /f
-#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateUrl /f 
-#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateToVersion /f 
-#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Updates /v UpdateToVersion /f 
-#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Office\16.0\Common\OfficeUpdate\ /f 
-#::"%CommonProgramFiles%\microsoft shared\ClickToRun\OfficeC2RClient.exe" /update user 
-#:::End 
+#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateUrl /f
+#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateToVersion /f
+#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Updates /v UpdateToVersion /f
+#::reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Office\16.0\Common\OfficeUpdate\ /f
+#::"%CommonProgramFiles%\microsoft shared\ClickToRun\OfficeC2RClient.exe" /update user
+#:::End
 #::Endlocal
