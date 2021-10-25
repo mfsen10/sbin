@@ -62,8 +62,9 @@ function Show-Menu{
 	Write-Host -ForegroundColor green ""
 	Write-Host -ForegroundColor green " Q : Press 'Q' to quit."
 }
+$validopt ="1","2","3","4","5",'6'
 
-if (($SetChannel -eq "0") -or ($SetChannel -eq 0) -or ($SetChannel -eq $null)){
+if (($SetChannel -notin $validopt)){
 	Show-Menu
 	$CurrentChannel = Get-ItemPropertyValue HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name CDNBaseUrl
 	switch ($CurrentChannel) {
@@ -110,9 +111,9 @@ if (($SetChannel -eq "0") -or ($SetChannel -eq 0) -or ($SetChannel -eq $null)){
 			Write-Host ""
 
 		}else{
-			$CurrentChannelName = "SemiAnnual"
+			$CurrentChannelName = "UNKNOWN"
 			Write-Host ""
-			Write-Host -ForegroundColor red "Current ODT Channel set: UNKNOWN"
+			Write-Host -ForegroundColor red "Current ODT Channel set: $CurrrentChannelName"
 			Write-Host ""
 		}
 	}
@@ -187,7 +188,7 @@ switch ($channel) {
 	}
 }
 
-$validopt ="1","2","3","4","5",'6'
+#$validopt ="1","2","3","4","5",'6'
 
 if ($channel -in $validopt) {
 	#force null response to quit
