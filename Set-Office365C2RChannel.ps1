@@ -6,21 +6,32 @@
 		Modifies Office 365 Click to Run Update Channel. Takes channel option from CLI or requests it in runtime.
 
 	.PARAMETER SetChannel
-			Specifies channel option to set and update to.
+		Specifies channel option to set and update to.
 
-			1 : Monthly Enterprise Channel (THe new _ACTUAL_ monthlies)
-			2 : Current Channel (Preview) (Prev/AKA, Monthly Channel Targeted/InsiderSlow)
-			3 : Current Channel (Prev/AKA, Monthly Channel)
-			4 : Beta Channel (Prev/AKA, Insider/Fast)
-			5 : Semi-Annual Enterprise Channel (Prev/AKA, Preview) (Semi-Annual Channel Targeted)
-			6 : Semi-Annual Enterprise Channel (Prev/AKA, Semi-Annual Channel)
+		1 : Monthly Enterprise Channel (THe new _ACTUAL_ monthlies)
+		2 : Current Channel (Preview) (Prev/AKA, Monthly Channel Targeted/InsiderSlow)
+		3 : Current Channel (Prev/AKA, Monthly Channel)
+		4 : Beta Channel (Prev/AKA, Insider/Fast)
+		5 : Semi-Annual Enterprise Channel (Prev/AKA, Preview) (Semi-Annual Channel Targeted)
+		6 : Semi-Annual Enterprise Channel (Prev/AKA, Semi-Annual Channel)
 
-	           PropertyType					string
-	           Required?                    false
-	           Position?                    0
-	           Default value				0
-	           Accept pipeline input?       false
-	           Accept wildcard characters?
+           PropertyType					string
+           Required?                    false
+           Position?                    0
+           Default value				0
+           Accept pipeline input?       false
+           Accept wildcard characters?	false
+	.PARAMETER SetUpMeth
+		Specifies Office update method
+
+		1 - Kills running office apps and provides document recovery options on re-open
+		2 - Polite request to user for updating via userland GUI  
+           PropertyType					string
+           Required?                    false
+           Position?                    1
+           Default value				0
+           Accept pipeline input?       false
+           Accept wildcard characters?	false
 
 	.LINK
 	Gr33tz:
@@ -34,9 +45,10 @@
 	Author: mf@GSD, 20211021
 #>
 #$SetChannel=$args[0]
-param([string]$SetChannel=0)
+param([string]$SetChannel=0,[string]$SetUpMeth=0);
 
-function Show-Menu{
+
+function Show-ChannelMenu{
     Write-host -ForegroundColor green ""
     write-host -ForegroundColor green "========================================================================"
     Write-Host -ForegroundColor green "===============    Set Office365 Click to Run Channel    ==============="
@@ -62,10 +74,23 @@ function Show-Menu{
 	Write-Host -ForegroundColor green ""
 	Write-Host -ForegroundColor green " Q : Press 'Q' to quit."
 }
-$validopt ="1","2","3","4","5",'6'
+$ValidChanOpt ="1","2","3","4","5",'6'
 
-if (($SetChannel -notin $validopt)){
-	Show-Menu
+function Show-UpdateMenu{
+    Write-host -ForegroundColor green ""
+    write-host -ForegroundColor green "========================================================================"
+    Write-Host -ForegroundColor green "===============      Choose  Office365 Update Method     ==============="
+    write-host -ForegroundColor green "========================================================================"
+	Write-Host -ForegroundColor green " 1 - Force update and auto close apps (session resume/document recovery on re-open)"
+	Write-Host -ForegroundColor green " 2 - Politely request userland update via C2R GUI"
+	Write-Host -ForegroundColor green " 0 : Press '0' to quit after modifying UpdateChannel."
+}
+$validUpMethOpt ="1","2", "0"
+
+
+
+if (($SetChannel -notin $ValidChanOpt)){
+	Show-ChannelMenu
 	$CurrentChannel = Get-ItemPropertyValue HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name CDNBaseUrl
 	switch ($CurrentChannel) {
 		'http://officecdn.microsoft.com/pr/55336b82-a18d-4dd6-b5f6-9e5095c314a6' {
@@ -128,15 +153,13 @@ if (($SetChannel -notin $validopt)){
 		Write-Host ""
 	}
 
-	$channel = Read-Host "Please make a selection"
-	$argwrite = "FALSE";
+	$GUIchannel = Read-Host "Please make a selection"
+	$Chanargwrite = "FALSE";
+	$channel = $GUIchannel;
 }else{
-	$argwrite = "TRUE";
+	$Chanargwrite = "TRUE";
 	$channel = $SetChannel;
 }
-
-
-
 
 switch ($channel) {
 	'1' {
@@ -188,9 +211,7 @@ switch ($channel) {
 	}
 }
 
-#$validopt ="1","2","3","4","5",'6'
-
-if ($channel -in $validopt) {
+if ($channel -in $ValidChanOpt) {
 	#force null response to quit
 	# query up the C2R installer config's value for null, which would imply it's not an active C2R instance, maybe MSI-based?
 	reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl
@@ -209,19 +230,58 @@ if ($channel -in $validopt) {
 
 		# Tell c2r to change channels however its undocumentedly ways work, and then go git gud
 		start "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" -ArgumentList "/changeSetting Channel=$channel"
-		saps "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" -ArgumentList "/update user displaylevel=false forceappshutdown=true"
+		#saps "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" -ArgumentList "/update user displaylevel=false forceappshutdown=true"
 		#start-process "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" -ArgumentList "/update user"
 
 		if ( ('true' -eq $?) -and (0 -eq $LASTEXITCODE) ) {
 			write-host -ForegroundColor green "		###########################################################################################
-			 PASS - UpdateChannel set to $Updatechannel, forcing background update now
+			 UpdateChannel set to $Updatechannel, processing update request
 		###########################################################################################
 			"
+
+		if (($SetUpMeth -notin $validUpMethOpt)){
+			Show-UpdateMenu
+			$GUIUpMeth = Read-Host "Please make a selection"
+			$UMargwrite = "FALSE";
+			$UpMeth = $GUIUpMeth;
+		}else{
+			$UMargwrite = "TRUE";
+			$UpMeth = $SetUpMeth;
+		}
+
+		$UMopt = "/update user";
+		function Run-update {saps "$Env:CommonProgramFiles\microsoft shared\ClickToRun\OfficeC2RClient.exe" $UMopt}
+
+
+		if ($UpMeth -in $validUpMethOpt) {
+			switch ($UpMeth) {
+				'1' {
+
+					$UMopt = "/update user displaylevel=false forceappshutdown=true"
+					Write-Host ""
+					Write-Host -ForegroundColor green "1 - Forcing update and auto close apps (session resume/document recovery on re-open)"
+					Write-Host ""
+					Run-update; 
+				} '2' {
+					Write-Host ""
+					Write-Host -ForegroundColor green "2 - Politely requested userland update via C2R GUI"
+					Write-Host ""
+					Run-Update;
+				} '0' {
+					Write-Host ""
+					Write-Host -ForegroundColor green "0 - No Update - exiting. Confirmation: Update channel was modified to: $UpdateChannel"
+					Write-Host ""
+				}
+			}
+		}else{
+			Write-Host -ForegroundColor green "Invalid update method selected, exiting"
+		}
+
 			sleep 2;
 			exit 0;
 		}else{
 			write-host -ForegroundColor red  "		###########################################################################################
-		     TEST - MUST PASS  posh operation success and win32app exiterr
+		     FAIL - posh operation  win32app exit error :
 		###########################################################################################
 
 		Some riffraff happened!
