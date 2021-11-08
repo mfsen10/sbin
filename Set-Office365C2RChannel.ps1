@@ -219,9 +219,16 @@ if ($channel -in $ValidChanOpt) {
 
 		# pin the low-priority ODT install config to selected Channel  
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration  -Name CDNBaseUrl -PropertyType String -Value $ChannelCDN -force|Out-Null
-		#set updates enabled in ODT app-level config
+		#set updates enabled from CDN in ODT app-level config
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration  -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
+		New-ItemProperty HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name O365ProPlusRetail.MediaType  -PropertyType String -Value "CDN" -force|Out-Null 
 		# undo ManageEngine DesktopCentral_Agent Mods 
+		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
+		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
+		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
+		
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
@@ -233,6 +240,7 @@ if ($channel -in $ValidChanOpt) {
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
+
 
 		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateUrl /f|Out-Null
 		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateToVersion /f|Out-Null
