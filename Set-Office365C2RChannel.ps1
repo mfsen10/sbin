@@ -41,6 +41,7 @@
 	PatrickTeas@Comsense:https://support.comsenseinc.com/hc/en-us/articles/360006783014-How-to-Determine-and-Change-your-Office-365-Update-Channel
 	DaveGunther@MS:https://techcommunity.microsoft.com/t5/office-365-blog/understanding-office-365-proplus-updates-for-it-pros-cdn-vs-sccm/ba-p/795728
 	The FMS Dev Team: https://www.fmsinc.com/microsoft-office/change-office-365-channel.html
+	https://docs.microsoft.com/en-us/mem/intune/configuration/administrative-templates-update-office
 	- The PowersHELL Team@MS for producing a functional shell
 	- Countless SOFlowers
 	Author: mf@GSD, 20211021
@@ -214,7 +215,8 @@ switch ($channel) {
 if ($channel -in $ValidChanOpt) {
 	#force null response to quit
 	# query up the C2R installer config's value for null, which would imply it's not an active C2R instance, maybe MSI-based?
-	reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl
+	# reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl
+	Get-ItemPropertyValue -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name CDNBaseUrl
 	if ( ('true' -eq $?) -and (0 -eq $LASTEXITCODE) ) {
 
 		# pin the low-priority ODT install config to selected Channel  
@@ -222,30 +224,33 @@ if ($channel -in $ValidChanOpt) {
 		#set updates enabled from CDN in ODT app-level config
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration  -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
 		New-ItemProperty HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name O365ProPlusRetail.MediaType  -PropertyType String -Value "CDN" -force|Out-Null 
-		# undo ManageEngine DesktopCentral_Agent Mods 
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
+		# # undo ManageEngine DesktopCentral_Agent Mods - incomplete unsettings discovery/fixes. 
+		# New-Item -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\ -Name UPDATE -force |Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\UPDATE -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
 		
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
+		# New-Item -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\ -Name CLIENTUPDATE -force |Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\CLIENTUPDATE -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
 
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
-		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
+		# New-Item -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\ -Name INSTALL -force |Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name BaseURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name UpdateURL -PropertyType String -Value $ChannelCDN -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name UpdatesEnabled -PropertyType String -Value "True" -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name MediaType -PropertyType String -Value "CDN" -force|Out-Null
+		# New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Scenario\INSTALL -Name SourceType -PropertyType String -Value "CDN" -force|Out-Null
 
 
-		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateUrl /f|Out-Null
-		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /v UpdateToVersion /f|Out-Null
-		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Updates /v UpdateToVersion /f|Out-Null
-		reg delete HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Office\16.0\Common\OfficeUpdate\ /f|Out-Null
+		Remove-ItemProperty -Force HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name UpdateUrl|Out-Null
+		Remove-ItemProperty -Force HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name UpdateToVersion|Out-Null
+		Remove-ItemProperty -Force HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Updates -Name UpdateToVersion|Out-Null
+		Remove-Item -Force HKLM:\SOFTWARE\Policies\Microsoft\Office\16.0\Common\OfficeUpdate\ |Out-Null
 		
 		# Pin C2R's hi-pri GPO reg's to ME channel
 		New-Item -Path HKLM:\SOFTWARE\Policies\Microsoft\office\16.0\common\ -Name officeupdate -force |Out-Null
