@@ -217,7 +217,8 @@ if ($channel -in $ValidChanOpt) {
 	# query up the C2R installer config's value for null, which would imply it's not an active C2R instance, maybe MSI-based?
 	# reg query HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Office\ClickToRun\Configuration /T REG_SZ /v CDNBaseUrl
 	Get-ItemPropertyValue -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration -Name CDNBaseUrl
-	if ( ('true' -eq $?) -and (0 -eq $LASTEXITCODE) ) {
+	if ($CurrCDNBase -ne $NULL -and $CurrCDNBase -ne '') {
+	#if ( ('true' -eq $?) -and (0 -eq $LASTEXITCODE) ) {
 
 		# pin the low-priority ODT install config to selected Channel  
 		New-ItemProperty -Path HKLM:\SOFTWARE\Microsoft\Office\ClickToRun\Configuration  -Name CDNBaseUrl -PropertyType String -Value $ChannelCDN -force|Out-Null
