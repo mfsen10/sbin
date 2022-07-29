@@ -2,7 +2,7 @@
 rmSophos.ps1
 .Synopsis
 Stops Sophos AutoUpdate services, sets bitlocker disable counter, collects installed Sophos modules, then runs through an ordered list to make 3x attempts of removal for the MSI-based packages, and closes out with
-the removal of Endpoint Defense EXE-based package.   
+the removal of Endpoint Defense EXE-based package.
 *~~ Gr33tz to JC@CFI, Sup3rLativ3@GitHub ~~*
 .Description
 @author: MF@CFI~20220719
@@ -143,9 +143,8 @@ Function Remove-SED
 Function Invoke-SophosZap
     {
         Write-Output "`n`nAttempting Sophos Zap!!!!"
-        #TODO: Execute Sophos Zap burn-down
         Write-Warning -Message "Holding up for 30 seconds for latency. If you want to Ctrl-C bailout..."
-        invoke-webrequest https://github.com/mfsen10/bin/raw/main/SophosZap-v1-4-146-20220728.exe -outfile "$Kitchen\SophosZap.exe" 
+        Invoke-WebRequest -Uri "https://github.com/mfsen10/bin/raw/main/SophosZap-v1-4-146-20220728.exe" -outfile "$Kitchen\SophosZap.exe" 
         start-sleep 30
         $ZapLogPath = "$env:temp\SophosZap log.txt"
         $PrevZapLog = Test-Path $ZapLogPath
@@ -166,16 +165,14 @@ Function Invoke-SophosZap
 Function Get-InstalledSophosMSI
     {
         Write-Output "Searching for installed Sophos Apps..."
-        # note we'll be removing the exe-based installer after all this MSI package removal.
         $instSophApps = Get-WmiObject -property "Name,IdentifyingNumber" -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
-        #Get-WMIObject -Query "SELECT Name,IdentifyingNumber FROM Win32_Product Where Name Like 'Sophos%' and not name='Sophos Endpoint Defense'"
         return $instSophApps
     }
 
 Function Initialize-OrderedSophosMSIsForUninstall
     {
         Param ($installedophosAppArr)
-        if(!$null -eq $installedophosAppArr)  
+        if(!$null -eq $installedophosAppArr)
             {
                 $removalctr = 0;
                 foreach ($NamedSophappToRm in $NamedSophAppRmOrder)
@@ -185,14 +182,11 @@ Function Initialize-OrderedSophosMSIsForUninstall
                         foreach($FoundSophAppBlob in $installedophosAppArr)
                             {
                                 $NamedInstApp = $FoundSophAppBlob.name
-                                #write-output "      Matches $NamedInstApp ?"
                                 if ($NamedInstApp -like "$NamedSophAppToRm*")
                                     {
                                         $removalappGuid=$FoundSophAppBlob.IdentifyingNumber
                                         Write-Output "    $NamedInstApp is installed, matches current place in ordered removal. Removing $removalappGuid"
-                                        #Write-Output $FoundSophAppBlob
                                         Write-Debug "($removalctr found in $rmStepping.)" 
-                                        #Write-Output "`n`n`n`n`n$FoundSophAppBlob`n`n`n`n"
                                         Invoke-MSIrmEngine $FoundSophAppBlob
                                     }else{
                                         Write-Debug "    $NamedSophappToRm not in slot, skipping."
@@ -276,7 +270,6 @@ Function Build-Kitchen
         return $KitchenPath;
     } 
 
-########################################################################################################
 #### var defs
 $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Network Threat Protection",
@@ -291,7 +284,6 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
 "Sophos SafeGuard Preinstall"
-
 
 #begin execution
 $Kitchen=Build-Kitchen
