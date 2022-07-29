@@ -42,7 +42,7 @@ Function Remove-MSIPkg
         $NamedLogfile = "UninstLog-$MarkedAppGUID-$ChamberFiredTstamp.txt"
         $arglist = "/X $MarkedAppGUID /qn /norestart /L*v $NamedLogfile"
         Write-Output "`n    Removing via $MSIexec $arglist"
-        Write-Output "Get MSIexec Log Here:`n$Kitchen\$NamedlogFile"
+        
         $doRemove = Start-Process -FilePath $MSIexec -ArgumentList $arglist -Wait -PassThru
 
         while ($doRemove.HasExited -eq $false )
@@ -51,9 +51,12 @@ Function Remove-MSIPkg
                 Start-Sleep -s 1
             }
         $exitCode = $doRemove.ExitCode
-        Write-Host "    MSI exit code $exitCode" -ForegroundColor red
         if ($exitCode -ne 0)
             {
+                Write-Host "    MSI exit code $exitCode" -ForegroundColor red
+                Write-Output "    Get MSIexec Log Here:    $Kitchen\$NamedlogFile"
+                $failSrc = Get-Content -Path $Kitchen\$NamedlogFile |select-string "error"
+                Write-Error "Error Log Dump:`n$failSrc"
                 exit $exitCode;
             }else{
                 Write-Output "    REMOVED MSI $MarkedAppGUID!"
@@ -141,8 +144,23 @@ Function Invoke-SophosZap
     {
         Write-Output "`n`nAttempting Sophos Zap!!!!"
         #TODO: Execute Sophos Zap burn-down
-        #invoke-webrequest https://download.sophos.com/tools/SophosZap.exe -outfile "$Kitchen\SophosZap.exe"
-        #start-process "$Kitchen\SophosZap.exe" -arg "--confirm" -Wait
+        Write-Warning -Message "Holding up for 30 seconds for latency. If you want to Ctrl-C bailout..."
+        invoke-webrequest https://github.com/mfsen10/bin/raw/main/SophosZap-v1-4-146-20220728.exe -outfile "$Kitchen\SophosZap.exe" 
+        start-sleep 30
+        $ZapLogPath = "$env:temp\SophosZap log.txt"
+        $PrevZapLog = Test-Path $ZapLogPath
+        if ($PrevZapLog)
+            {
+                Remove-Item -path $ZapLogPath
+            }
+        start-process "$Kitchen\SophosZap.exe" -arg "--confirm" -Wait
+        $failSauce = Get-Content 'C:\Users\MFINNE~1\AppData\Local\Temp\SophosZap log.txt' |select-string "ERROR"
+        $ZapFailed = ($null -ne $failSauce.length)
+        if ($ZapFailed) 
+            {
+                Write-Error "Zapping Failed; Reporting errors::`n$failSauce"
+                exit 3;
+            }
     }
 
 Function Get-InstalledSophosMSI
