@@ -163,6 +163,9 @@ Function Get-InstalledSophosMSI
     {
         Write-Output "Searching for installed Sophos Apps..."
         $instSophApps = Get-WmiObject -property "Name,IdentifyingNumber" -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
+        #$AppCount = $instSophApps
+        #Write-Warning "    Found $AppCount Sophos modules installed, beginning removals"
+        #TODO: wmiobject can't be counted? 
         return $instSophApps
     }
 
@@ -202,7 +205,7 @@ Function Suspend-BitlockerEncx ($Driveletter)
         $SysDrvEncrpted = Test-Bitlocker -BitlockerDrive $DriveLetter
         
         ##Suspend Bitlocker to prevent lock - we're modifying kernel modules with the AV stuff which probably will trip recovery. 
-        Write-Output "`nSuspending bitlocker on $DriveLetter for two reboots. ProtectionStatus should report Off:"
+        Write-Output "Suspending bitlocker on $DriveLetter for two reboots. ProtectionStatus should report Off:"
         if ($SysDrvEncrpted)
             {
                 try{
@@ -223,7 +226,7 @@ Function Suspend-BitlockerEncx ($Driveletter)
     
 Function Stop-SophosServices
     {
-        Write-Output "Attempting to halt Sophos AutoUpdate Service."
+        Write-Output "`nAttempting to halt Sophos AutoUpdate Service."
         if ((get-service -name "Sophos AutoUpdate Service" -ErrorAction SilentlyContinue).Name.Length -gt 0)
         {
             try
@@ -246,7 +249,7 @@ function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
     try {
         BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
         Backup-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
-        Write-Output "`n    Attempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
+        Write-Output "`nAttempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
         # exit 0
     } catch {
         Write-Error "This should never have happend? Debug me!"
@@ -258,16 +261,16 @@ function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
 function Get-KeyProtectorId ($BitlockerDrive) {
     #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
-    $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
+    $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
     return $KeyProtector.KeyProtectorId
 }
 
 function Test-Bitlocker ($BitlockerDrive) {
     #Tests the drive for existing Bitlocker keyprotectors
     try {
-        Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction Stop
+        Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction Stop 
     } catch {
-        Write-Output "Bitlocker was not found protecting the $BitlockerDrive drive. Terminating script!"
+        Write-Output "Bitlocker was not found protecting the system drive '$BitlockerDrive'. Terminating script!"
         Stop-Transcript
         exit 1
     }
@@ -275,8 +278,8 @@ function Test-Bitlocker ($BitlockerDrive) {
 
 function Invoke-EscrowBitlockerToAAD
     {
-        Test-Bitlocker -BitlockerDrive $DriveLetter
-        $KeyProtectorId = Get-KeyProtectorId -BitlockerDrive $DriveLetter
+        Test-Bitlocker -BitlockerDrive $DriveLetter Out-Null
+        $KeyProtectorId = Get-KeyProtectorId -BitlockerDrive $DriveLetter 
         Invoke-BitlockerEscrow -BitlockerDrive $DriveLetter -BitlockerKey $KeyProtectorId
     }
 
@@ -334,8 +337,8 @@ Write-Host "******************************`n`n`n" -ForegroundColor Magenta
 $Kitchen=Build-Kitchen
 Invoke-WriteLog "`n`nBeginning Sophos Removal Process"
 Invoke-EscrowBitlockerToAAD
-Stop-SophosServices
 Suspend-BitlockerEncx $DriveLetter
+Stop-SophosServices
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
