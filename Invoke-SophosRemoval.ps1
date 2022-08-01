@@ -1,28 +1,19 @@
 <#
-rmSophos.ps1
-.Synopsis
+Invoke-SophosRemoval.ps1
+.SYNOPSIS
 Stops Sophos AutoUpdate services, sets bitlocker disable counter, collects installed Sophos modules, then runs through an ordered list to make 3x attempts of removal for the MSI-based packages, and closes out with
-the removal of Endpoint Defense EXE-based package.
-*~~ Gr33tz to JC@CFI, Sup3rLativ3@GitHub ~~*
-.Description
-@author: MF@CFI~20220719
-.Link
+the removal of Endpoint Defense EXE-based package. I'd be happy to Install-Module PackageManagement but it's non-native depedency, so roll my own. 
+*~~. Gr33tz to JC@CFI, Sup3rLativ3@GitHub, mardhal@msendpointmgr .~~*
+.DESCRIPTION
+@author: MF@CFI~20220719-29
+.LINK
  https://support.sophos.com/support/s/article/KB-000033686?language=en_US
-.Link
+.LINK
 https://github.com/Sup3rLativ3/Remove-Sophos/blob/master/Remove-Sophos.ps1
+.LINK
+https://github.com/mardahl/PSBucket/blob/master/Invoke-EscrowBitlockerToAAD.ps1
 #>
 #requires -runasadministrator
-
-### Housekeeping
-Clear-Host
-$RmAttemptCounter = 0
-$removalctr = 0
-$rmStepping = 0
-
-#### Welcome banner
-Write-Host "******************************" -ForegroundColor Magenta
-Write-Host "** Sophos uninstall script. **" -ForegroundColor Magenta
-Write-Host "******************************`n`n`n" -ForegroundColor Magenta
 
 #### fn declarations
 Function Confirm-Program_Installed( $programName ) 
@@ -57,7 +48,9 @@ Function Remove-MSIPkg
                 Write-Output "    Get MSIexec Log Here:    $Kitchen\$NamedlogFile"
                 $failSrc = Get-Content -Path $Kitchen\$NamedlogFile |select-string "error"
                 Write-Error "Error Log Dump:`n$failSrc"
-                exit $exitCode;
+                Stop-Transcript
+                $MillerTime = 9990000+$exitCode
+                exit $MillerTime; 
             }else{
                 Write-Output "    REMOVED MSI $MarkedAppGUID!"
             }
@@ -87,7 +80,8 @@ Function Invoke-MSIrmEngine
                 If ($StillInstalled)
                     {
                         Write-Error "`n`nERROR: Unable to uninstall $InChamberAppName after $RmAttemptCounter times"
-                        exit 1;
+                        Stop-Transcript
+                        exit 15;
                     }Else{
                         Write-Output "Successfully removed $InChamberAppName"
                         $RmAttemptCounter = 0
@@ -136,14 +130,16 @@ Function Remove-SED
                     }
             }else{
                 Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)" -ForegroundColor Green
-                exit 0;
+                Stop-Transcript
+                exit 4;
             }
     }
 
 Function Invoke-SophosZap
     {
         Write-Output "`n`nAttempting Sophos Zap!!!!"
-        Write-Warning -Message "Holding up for 30 seconds for latency. If you want to Ctrl-C bailout..."
+        #TODO: reduce hold timer
+        Write-Warning -Message "Holding here for 30 seconds to cover latency. If you want to Ctrl-C bailout..."
         Invoke-WebRequest -Uri "https://github.com/mfsen10/bin/raw/main/SophosZap-v1-4-146-20220728.exe" -outfile "$Kitchen\SophosZap.exe" 
         start-sleep 30
         $ZapLogPath = "$env:temp\SophosZap log.txt"
@@ -158,7 +154,8 @@ Function Invoke-SophosZap
         if ($ZapFailed) 
             {
                 Write-Error "Zapping Failed; Reporting errors::`n$failSauce"
-                exit 3;
+                Stop-Transcript
+                exit 5;
             }
     }
 
@@ -200,25 +197,12 @@ Function Initialize-OrderedSophosMSIsForUninstall
             }
     }
 
-function Test-Bitlocker ($BitlockerDrive) 
+Function Suspend-BitlockerEncx ($Driveletter)
     {
-        #Tests the drive for existing Bitlocker keyprotectors
-        try {
-            Write-Output "    Checking System Drive Encryption Status"
-            Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction SilentlyContinue
-        } catch {
-            Write-Output "    Bitlocker was not found protecting the $BitlockerDrive system drive."
-        }
-    }
-        
-Function Suspend-BitlockerEncx
-    {
-        $DriveLetter = $env:SystemDrive
-
         $SysDrvEncrpted = Test-Bitlocker -BitlockerDrive $DriveLetter
         
         ##Suspend Bitlocker to prevent lock - we're modifying kernel modules with the AV stuff which probably will trip recovery. 
-        Write-Output "`nSetting bitlocker suspension for two reboots. ProtectionStatus should report Off:"
+        Write-Output "`nSuspending bitlocker on $DriveLetter for two reboots. ProtectionStatus should report Off:"
         if ($SysDrvEncrpted)
             {
                 try{
@@ -229,7 +213,8 @@ Function Suspend-BitlockerEncx
                 catch
                 {
                     Write-Error "Unable to suspend Bitlocker, halting"
-                    exit 1;
+                    Stop-Transcript
+                    exit 3;
                 }
             }else{
                 Write-Output "    Skipping BL suspension"
@@ -256,6 +241,54 @@ Function Stop-SophosServices
         }
     }
 
+function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
+    #Escrow the key into Azure AD
+    try {
+        BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
+        Backup-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
+        Write-Output "`n    Attempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
+        # exit 0
+    } catch {
+        Write-Error "This should never have happend? Debug me!"
+        Stop-Transcript
+        exit 2
+    }
+}
+
+function Get-KeyProtectorId ($BitlockerDrive) {
+    #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
+    $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
+    $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
+    return $KeyProtector.KeyProtectorId
+}
+
+function Test-Bitlocker ($BitlockerDrive) {
+    #Tests the drive for existing Bitlocker keyprotectors
+    try {
+        Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction Stop
+    } catch {
+        Write-Output "Bitlocker was not found protecting the $BitlockerDrive drive. Terminating script!"
+        Stop-Transcript
+        exit 1
+    }
+}
+
+function Invoke-EscrowBitlockerToAAD
+    {
+        Test-Bitlocker -BitlockerDrive $DriveLetter
+        $KeyProtectorId = Get-KeyProtectorId -BitlockerDrive $DriveLetter
+        Invoke-BitlockerEscrow -BitlockerDrive $DriveLetter -BitlockerKey $KeyProtectorId
+    }
+
+function Invoke-WriteLog ([string]$LogString) 
+    {
+        $Logfile = "$Kitchen\SophRM_$env:computername.log"
+        $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
+        $LogMessage = "$Stamp $LogString"
+        Add-content $LogFile -value $LogMessage
+        Start-Transcript -Append $Logfile
+    }
+
 Function Build-Kitchen 
     {
         $NamedKitchen = "SophRm"
@@ -268,9 +301,11 @@ Function Build-Kitchen
         }
         Set-Location -Path $KitchenPath
         return $KitchenPath;
-    } 
+    }
 
-#### var defs
+    #endregion functions
+
+#region declarations
 $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Network Threat Protection",
 "Sophos Client Firewall",
@@ -284,12 +319,26 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
 "Sophos SafeGuard Preinstall"
+$RmAttemptCounter = 0
+$removalctr = 0
+$rmStepping = 0
+$DriveLetter = $env:SystemDrive
+Clear-Host
+Write-Host "******************************" -ForegroundColor Magenta
+Write-Host "** Sophos uninstall script. **" -ForegroundColor Magenta
+Write-Host "******************************`n`n`n" -ForegroundColor Magenta
+#endregion declarations
 
-#begin execution
+
+#region execute
 $Kitchen=Build-Kitchen
+Invoke-WriteLog "`n`nBeginning Sophos Removal Process"
+Invoke-EscrowBitlockerToAAD
 Stop-SophosServices
-Suspend-BitlockerEncx
+Suspend-BitlockerEncx $DriveLetter
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
 Invoke-SophosZap
+Stop-Transcript
+#endregion execute
