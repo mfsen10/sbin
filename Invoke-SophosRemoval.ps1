@@ -18,7 +18,7 @@ https://github.com/mardahl/PSBucket/blob/master/Invoke-EscrowBitlockerToAAD.ps1
 #### fn declarations
 Function Confirm-Program_Installed( $programName ) 
     {
-        $wmi_check = (Get-WMIObject -Property "Name" -Class "Win32_Product" -Filter "Name LIKE '$programName%'").name.length -gt 0
+        $wmi_check = (Get-CimInstance -Property "Name" -Class "Win32_Product" -Filter "Name LIKE '$programName%'").name.length -gt 0
         return $wmi_check;
     }
 
@@ -129,6 +129,7 @@ Function Remove-SED
                         Invoke-SophosZap
                     }
             }else{
+                Write-Output "    Endpoint Defense Module not found."
                 Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
                 Stop-Transcript
                 exit 4;
@@ -162,19 +163,25 @@ Function Invoke-SophosZap
 Function Get-InstalledSophosMSI
     {
         Write-Output "Searching for installed Sophos Apps..."
-        $instSophApps = Get-WmiObject -property "Name,IdentifyingNumber" -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
-        #$AppCount = $instSophApps
-        #Write-Warning "    Found $AppCount Sophos modules installed, beginning removals"
-        #TODO: wmiobject can't be counted? 
+        #$instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
+        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name LIKE '%safeguard%'"
+        $AppCount = $instSophApps.Name.count
+        if ($appcount -gt 0)
+            {
+                Write-Warning "    Found $AppCount Sophos MSI modules installed, beginning removals"
+            }
         return $instSophApps
     }
 
 Function Initialize-OrderedSophosMSIsForUninstall
     {
         Param ($installedophosAppArr)
-        if(!$null -eq $installedophosAppArr)
+        if($installedophosAppArr.name.count -gt 0)
             {
                 $removalctr = 0;
+                Write-Output "    Sophos apps remain installed."
+                Suspend-BitlockerEncx $DriveLetter
+                Stop-SophosServices
                 foreach ($NamedSophappToRm in $NamedSophAppRmOrder)
                     {
                         Write-output "`nStep $removalctr. $NamedSophappToRm to be removed"
@@ -205,7 +212,7 @@ Function Suspend-BitlockerEncx ($Driveletter)
         $SysDrvEncrpted = Test-Bitlocker -BitlockerDrive $DriveLetter
         
         ##Suspend Bitlocker to prevent lock - we're modifying kernel modules with the AV stuff which probably will trip recovery. 
-        Write-Output "Suspending bitlocker on $DriveLetter for two reboots. ProtectionStatus should report Off:"
+        Write-Output "`nSuspending bitlocker on $DriveLetter for two reboots. ProtectionStatus should report Off:"
         if ($SysDrvEncrpted)
             {
                 try{
@@ -253,7 +260,7 @@ function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
         Write-Output "`nAttempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
         # exit 0
     } catch {
-        Write-Error "This should never have happend? Debug me!"
+        Write-Error "Azure escrow failed, exiting!"
         Stop-Transcript
         exit 2
     }
@@ -341,8 +348,6 @@ $Kitchen=Build-Kitchen
 Write-Output "Working from $Kitchen"
 Invoke-WriteLog ("`n`nBeginning Sophos Removal Process")
 Invoke-EscrowBitlockerToAAD
-Suspend-BitlockerEncx $DriveLetter
-Stop-SophosServices
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
