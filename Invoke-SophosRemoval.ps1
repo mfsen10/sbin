@@ -29,7 +29,7 @@ Function Remove-MSIPkg
         #Write-Output "    DEBUG: MSIexec nixing $markedappguid at $ChamberFiredTstamp "
         #TODO: execute uninstall
         $MSIexec = "$Env:windir\system32\msiexec.exe"
-        Set-Location -Path $Kitchen
+        #Set-Location -Path $Kitchen
         $NamedLogfile = "UninstLog-$MarkedAppGUID-$ChamberFiredTstamp.txt"
         $arglist = "/X $MarkedAppGUID /qn /norestart /L*v $NamedLogfile"
         Write-Output "`n    Removing via $MSIexec $arglist"
@@ -129,7 +129,7 @@ Function Remove-SED
                         Invoke-SophosZap
                     }
             }else{
-                Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)" -ForegroundColor Green
+                Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
                 Stop-Transcript
                 exit 4;
             }
@@ -247,7 +247,8 @@ Function Stop-SophosServices
 function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
     #Escrow the key into Azure AD
     try {
-        BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
+        BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey 
+        #BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
         Backup-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
         Write-Output "`nAttempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
         # exit 0
@@ -263,6 +264,7 @@ function Get-KeyProtectorId ($BitlockerDrive) {
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
     $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
     return $KeyProtector.KeyProtectorId
+    #(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
 }
 
 function Test-Bitlocker ($BitlockerDrive) {
@@ -285,7 +287,7 @@ function Invoke-EscrowBitlockerToAAD
 
 function Invoke-WriteLog ([string]$LogString) 
     {
-        $Logfile = "$Kitchen\SophRM_$env:computername.log"
+        $Logfile = ".\SophRM_$env:computername.log"
         $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
         $LogMessage = "$Stamp $LogString"
         Add-content $LogFile -value $LogMessage
@@ -297,7 +299,7 @@ Function Build-Kitchen
         $NamedKitchen = "SophRm"
         $KitchenPath = "$Env:SystemDrive\$NamedKitchen"
         #$logpathexists=(Get-Item $KitchenPath).name -gt 0;
-        if (!(Test-Path $kitchenPath))
+        if (!(Test-Path $KitchenPath))
         {
             Write-Output "Kitchen not found, building $KitchenPath"
             New-Item -Path "$KitchenPath" -ItemType Directory 
@@ -318,10 +320,11 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Exploit Prevention",
 "Sophos CryptoGuard",
 "Sophos Clean",
-"Sophos Patch Agent",
+"Sophos Patch Agent"<#,
 "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
 "Sophos SafeGuard Preinstall"
+#>
 $RmAttemptCounter = 0
 $removalctr = 0
 $rmStepping = 0
@@ -335,7 +338,8 @@ Write-Host "******************************`n`n`n" -ForegroundColor Magenta
 
 #region execute
 $Kitchen=Build-Kitchen
-Invoke-WriteLog "`n`nBeginning Sophos Removal Process"
+Write-Output "Working from $Kitchen"
+Invoke-WriteLog ("`n`nBeginning Sophos Removal Process")
 Invoke-EscrowBitlockerToAAD
 Suspend-BitlockerEncx $DriveLetter
 Stop-SophosServices
