@@ -163,8 +163,8 @@ Function Invoke-SophosZap
 Function Get-InstalledSophosMSI
     {
         Write-Output "Searching for installed Sophos Apps..."
-        #$instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
-        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name LIKE '%safeguard%'"
+        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
+        #$instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name LIKE '%safeguard%'"
         $AppCount = $instSophApps.Name.count
         if ($appcount -gt 0)
             {
@@ -327,11 +327,11 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Exploit Prevention",
 "Sophos CryptoGuard",
 "Sophos Clean",
-"Sophos Patch Agent"<#,
+"Sophos Patch Agent",
 "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
 "Sophos SafeGuard Preinstall"
-#>
+
 $RmAttemptCounter = 0
 $removalctr = 0
 $rmStepping = 0
