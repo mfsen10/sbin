@@ -102,7 +102,8 @@ Function Remove-SED
     { 
         Write-Output "`nChecking if the final Endpoint Defense module is installed..."
         $SEDAppName = "Sophos Endpoint Defense"
-        $SEDinstalled = Confirm-Program_Installed $SEDAppName
+        #$SEDinstalled = Confirm-Program_Installed $SEDAppName
+        $SEDinstalled = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
         if ($SEDinstalled)
             {
                 try 
