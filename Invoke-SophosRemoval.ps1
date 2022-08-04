@@ -16,6 +16,13 @@ https://github.com/mardahl/PSBucket/blob/master/Invoke-EscrowBitlockerToAAD.ps1
 #requires -runasadministrator
 
 #### fn declarations
+Function Test-Eicar
+    {
+        Write-Output "Attempting EICAR execution for AV validation"
+        invoke-webrequest "https://secure.eicar.org/eicar.com" -outfile "$env:windir\temp\eicar.com" -ErrorAction SilentlyContinue
+        Start-process "$env:windir\temp\eicar.com" -ErrorAction SilentlyContinue
+    }
+
 Function Confirm-Program_Installed( $programName ) 
     {
         $wmi_check = (Get-CimInstance -Property "Name" -Class "Win32_Product" -Filter "Name LIKE '$programName%'").name.length -gt 0
@@ -95,7 +102,8 @@ Function Remove-SED
     { 
         Write-Output "`nChecking if the final Endpoint Defense module is installed..."
         $SEDAppName = "Sophos Endpoint Defense"
-        $SEDinstalled = Confirm-Program_Installed $SEDAppName
+        #$SEDinstalled = Confirm-Program_Installed $SEDAppName
+        $SEDinstalled = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
         if ($SEDinstalled)
             {
                 try 
@@ -105,8 +113,9 @@ Function Remove-SED
                         start-process $sedUninstexe -arg "/silent" -Wait
                         $SEDrmCtr = 1
                         $SEDZombie = $TRUE
-                        Write-Output "    Confirming that $InChamberAppName ($inchamberappguid) is uninstalled"
-                        $SEDZombie = Confirm-Program_Installed $SEDAppName
+                        Write-Output "    Confirming that $SEDAppName is uninstalled"
+                        #$SEDZombie = Confirm-Program_Installed $SEDAppName
+                        $SEDZombie = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
                         While ($SEDZombie -and $SEDrmCtr -lt 4)
                             {
                                 Write-Output "    $SEDAppName was not uninstalled, trying again... ($sedrmctr)" 
@@ -121,6 +130,7 @@ Function Remove-SED
                         Else
                             {
                                 Write-Output "Successfully removed $SedAppName"
+                                Invoke-SophosZap
                                 $SEDrmCtr = 0
                             }
                         Write-Output "Successfully removed Sophos Endpoint Defense"
@@ -351,6 +361,7 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
+Test-Eicar
 Invoke-SophosZap
 Stop-Transcript
 #endregion execute
