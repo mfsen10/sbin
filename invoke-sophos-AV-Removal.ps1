@@ -113,7 +113,7 @@ Function Remove-SED
                         start-process $sedUninstexe -arg "/silent" -Wait
                         $SEDrmCtr = 1
                         $SEDZombie = $TRUE
-                        Write-Output "    Confirming that $InChamberAppName ($inchamberappguid) is uninstalled"
+                        Write-Output "    Confirming that $SEDAppName is uninstalled"
                         #$SEDZombie = Confirm-Program_Installed $SEDAppName
                         $SEDZombie = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
                         While ($SEDZombie -and $SEDrmCtr -lt 4)
