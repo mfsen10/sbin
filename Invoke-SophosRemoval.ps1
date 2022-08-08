@@ -49,7 +49,7 @@ Function Remove-MSIPkg
                 Start-Sleep -s 1
             }
         $exitCode = $doRemove.ExitCode
-        if ($exitCode -ne 0)
+        if ($exitCode -ne 0 -and $exitcode -ne 3010)
             {
                 Write-Host "    MSI exit code $exitCode" -ForegroundColor red
                 Write-Output "    Get MSIexec Log Here:    $Kitchen\$NamedlogFile"
@@ -60,6 +60,14 @@ Function Remove-MSIPkg
                 exit $MillerTime; 
             }else{
                 Write-Output "    REMOVED MSI $MarkedAppGUID!"
+                if ($exitCode -eq 3010)
+                    {
+                        Write-Output "Last App reported Reboot Required, throwing userland GUID reboot request"
+                        #todo: figure out a method of sleeping on msg prompt so SED removal can complete before user bails the machine out of it.  this sleep works but might open a cmd window for timeout phase and the escaped linebreaks don't work.
+                        #Start-Process -FilePath "$env:windir\system32\cmd.exe" -Args "/C timeout 60 && msg.exe * Sophos removal has completed and requires a reboot - Please reboot this machine as soon as possible to avoid performance issues\`n\`nThank you - Microsoft Defender Deployment Administrator"
+                        Start-Process -FilePath "$env:windir\system32\MSG.exe" -Args "* Sophos removal has completed and requires a reboot - Please reboot this machine as soon as possible to avoid performance issues`n`nThank you - Microsoft Defender Deployment Administrator"
+                    }
+
             }
     }
 
