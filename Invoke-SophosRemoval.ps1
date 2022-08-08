@@ -129,6 +129,7 @@ Function Remove-SED
                         Else
                             {
                                 Write-Output "Successfully removed $SedAppName"
+                                Test-Eicar
                                 Invoke-SophosZap
                                 $SEDrmCtr = 0
                             }
@@ -165,7 +166,7 @@ Function Invoke-SophosZap
             {
                 Write-Error "Zapping Failed; Reporting errors::`n$failSauce"
                 Stop-Transcript
-                exit 5;
+                #exit 5;
             }
     }
 
@@ -337,10 +338,11 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos CryptoGuard",
 "Sophos Clean",
 "Sophos Patch Agent",
+"Sophos System Protection",
 "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
-"Sophos SafeGuard Preinstall",
-"Sophos System Protection"
+"Sophos SafeGuard Preinstall"
+
 
 $RmAttemptCounter = 0
 $removalctr = 0
