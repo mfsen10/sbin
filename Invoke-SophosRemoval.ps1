@@ -368,9 +368,10 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
-$NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
-Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Test-Eicar
+$NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
+Write-Output "`nSearching for installed SafeGuard Apps..."
+Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Invoke-SophosZap
 Stop-Transcript
 exit 0;
