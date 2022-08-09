@@ -9,7 +9,7 @@ function Test-Bitlocker ($BitlockerDrive) {
 function Get-KeyProtectorId ($BitlockerDrive) {
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
     $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' }
-    while ($Keyprotector.keyprotectorid -lt 1)
+    while ($Keyprotector.keyprotectorid.length -lt 1)
     {
         Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
         $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
