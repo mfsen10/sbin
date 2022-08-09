@@ -49,7 +49,7 @@ Function Remove-MSIPkg
                 Start-Sleep -s 1
             }
         $exitCode = $doRemove.ExitCode
-        if ($exitCode -ne 0)
+        if ($exitCode -ne 0 -and $exitcode -ne 3010)
             {
                 Write-Host "    MSI exit code $exitCode" -ForegroundColor red
                 Write-Output "    Get MSIexec Log Here:    $Kitchen\$NamedlogFile"
@@ -60,6 +60,14 @@ Function Remove-MSIPkg
                 exit $MillerTime; 
             }else{
                 Write-Output "    REMOVED MSI $MarkedAppGUID!"
+                if ($exitCode -eq 3010)
+                    {
+                        Write-Output "Last App reported Reboot Required, throwing userland GUID reboot request"
+                        #todo: figure out a method of sleeping on msg prompt so SED removal can complete before user bails the machine out of it.  this sleep works but might open a cmd window for timeout phase and the escaped linebreaks don't work.
+                        #Start-Process -FilePath "$env:windir\system32\cmd.exe" -Args "/C timeout 60 && msg.exe * Sophos removal has completed and requires a reboot - Please reboot this machine as soon as possible to avoid performance issues\`n\`nThank you - Microsoft Defender Deployment Administrator"
+                        Start-Process -FilePath "$env:windir\system32\MSG.exe" -Args "* Sophos removal has completed and requires a reboot - Please reboot this machine as soon as possible to avoid performance issues`n`nThank you - Microsoft Defender Deployment Administrator"
+                    }
+
             }
     }
 
@@ -102,8 +110,7 @@ Function Remove-SED
     { 
         Write-Output "`nChecking if the final Endpoint Defense module is installed..."
         $SEDAppName = "Sophos Endpoint Defense"
-        #$SEDinstalled = Confirm-Program_Installed $SEDAppName
-        $SEDinstalled = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
+        $SEDinstalled = Confirm-Program_Installed $SEDAppName
         if ($SEDinstalled)
             {
                 try 
@@ -113,7 +120,7 @@ Function Remove-SED
                         start-process $sedUninstexe -arg "/silent" -Wait
                         $SEDrmCtr = 1
                         $SEDZombie = $TRUE
-                        Write-Output "    Confirming that $SEDAppName is uninstalled"
+                        Write-Output "    Confirming that $InChamberAppName ($inchamberappguid) is uninstalled"
                         #$SEDZombie = Confirm-Program_Installed $SEDAppName
                         $SEDZombie = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
                         While ($SEDZombie -and $SEDrmCtr -lt 4)
@@ -130,6 +137,7 @@ Function Remove-SED
                         Else
                             {
                                 Write-Output "Successfully removed $SedAppName"
+                                Test-Eicar
                                 Invoke-SophosZap
                                 $SEDrmCtr = 0
                             }
@@ -166,15 +174,15 @@ Function Invoke-SophosZap
             {
                 Write-Error "Zapping Failed; Reporting errors::`n$failSauce"
                 Stop-Transcript
-                exit 5;
+                #exit 5;
             }
     }
 
 Function Get-InstalledSophosMSI
     {
         Write-Output "Searching for installed Sophos Apps..."
-        #$instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
-        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name LIKE '%safeguard%'"
+        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
+        #$instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name LIKE '%safeguard%'"
         $AppCount = $instSophApps.Name.count
         if ($appcount -gt 0)
             {
@@ -280,6 +288,11 @@ function Get-KeyProtectorId ($BitlockerDrive) {
     #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
     $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+    while ($Keyprotector.keyprotectorid -lt 1)
+        {
+            Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
+            $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+        }
     return $KeyProtector.KeyProtectorId
     #(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
 }
@@ -338,9 +351,11 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos CryptoGuard",
 "Sophos Clean",
 "Sophos Patch Agent",
+"Sophos System Protection"<#,
 "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
-"Sophos SafeGuard Preinstall"
+"Sophos SafeGuard Preinstall"#>
+
 
 $RmAttemptCounter = 0
 $removalctr = 0
