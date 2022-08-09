@@ -132,25 +132,19 @@ Function Remove-SED
                         If ($StillInstalled)
                             {
                                 Write-Error "`n`nERROR: Unable to uninstall $SEDAppName after $sedrmctr times"
-                                #Invoke-SophosZap
                             }
                         Else
                             {
                                 Write-Output "Successfully removed $SedAppName"
-                                Test-Eicar
-                                #Invoke-SophosZap
                                 $SEDrmCtr = 0
                             }
                         Write-Output "Successfully removed Sophos Endpoint Defense"
                     }catch{
                         Write-Error "Error: Failed to remove Sophos Endpoint Defense"
-                        #Invoke-SophosZap
                     }
             }else{
                 Write-Output "    Endpoint Defense Module not found."
                 Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
-                #Stop-Transcript
-                #exit 4;
             }
     }
 
@@ -173,8 +167,6 @@ Function Invoke-SophosZap
         if ($ZapFailed) 
             {
                 Write-Error "Zapping Failed; Reporting errors::`n$failSauce"
-                Stop-Transcript
-                #exit 5;
             }
     }
 
@@ -276,7 +268,6 @@ function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
         #BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
         Backup-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
         Write-Output "`nAttempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
-        # exit 0
     } catch {
         Write-Error "Azure escrow failed, exiting!"
         Stop-Transcript
@@ -379,7 +370,8 @@ Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
 $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
 #Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
-Test-Eicar
 #Invoke-SophosZap
+Test-Eicar
 Stop-Transcript
+exit 0;
 #endregion execute
