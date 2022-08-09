@@ -288,7 +288,7 @@ function Get-KeyProtectorId ($BitlockerDrive) {
     #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
     $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
-    while ($Keyprotector.keyprotectorid -lt 1)
+    while ($Keyprotector.keyprotectorid.length -lt 1)
         {
             Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
             $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
