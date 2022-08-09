@@ -132,25 +132,25 @@ Function Remove-SED
                         If ($StillInstalled)
                             {
                                 Write-Error "`n`nERROR: Unable to uninstall $SEDAppName after $sedrmctr times"
-                                Invoke-SophosZap
+                                #Invoke-SophosZap
                             }
                         Else
                             {
                                 Write-Output "Successfully removed $SedAppName"
                                 Test-Eicar
-                                Invoke-SophosZap
+                                #Invoke-SophosZap
                                 $SEDrmCtr = 0
                             }
                         Write-Output "Successfully removed Sophos Endpoint Defense"
                     }catch{
                         Write-Error "Error: Failed to remove Sophos Endpoint Defense"
-                        Invoke-SophosZap
+                        #Invoke-SophosZap
                     }
             }else{
                 Write-Output "    Endpoint Defense Module not found."
                 Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
-                Stop-Transcript
-                exit 4;
+                #Stop-Transcript
+                #exit 4;
             }
     }
 
@@ -380,6 +380,6 @@ Remove-SED
 $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
 #Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Test-Eicar
-Invoke-SophosZap
+#Invoke-SophosZap
 Stop-Transcript
 #endregion execute
