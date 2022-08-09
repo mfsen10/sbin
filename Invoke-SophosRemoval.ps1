@@ -110,7 +110,7 @@ Function Remove-SED
     { 
         Write-Output "`nChecking if the final Endpoint Defense module is installed..."
         $SEDAppName = "Sophos Endpoint Defense"
-        $SEDinstalled = Confirm-Program_Installed $SEDAppName
+        $SEDinstalled = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
         if ($SEDinstalled)
             {
                 try 
@@ -120,7 +120,7 @@ Function Remove-SED
                         start-process $sedUninstexe -arg "/silent" -Wait
                         $SEDrmCtr = 1
                         $SEDZombie = $TRUE
-                        Write-Output "    Confirming that $InChamberAppName ($inchamberappguid) is uninstalled"
+                        Write-Output "    Confirming that $SEDAppName is uninstalled"
                         #$SEDZombie = Confirm-Program_Installed $SEDAppName
                         $SEDZombie = Test-Path "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDService.exe"
                         While ($SEDZombie -and $SEDrmCtr -lt 4)
@@ -344,8 +344,8 @@ Function Build-Kitchen
 $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Network Threat Protection",
 "Sophos Client Firewall",
- "Sophos Anti-Virus",
- "Sophos AutoUpdate",
+"Sophos Anti-Virus",
+"Sophos AutoUpdate",
 "Sophos Diagnostic Utility",
 "Sophos Exploit Prevention",
 "Sophos CryptoGuard",
