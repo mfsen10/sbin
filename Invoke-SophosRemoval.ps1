@@ -132,25 +132,25 @@ Function Remove-SED
                         If ($StillInstalled)
                             {
                                 Write-Error "`n`nERROR: Unable to uninstall $SEDAppName after $sedrmctr times"
-                                Invoke-SophosZap
+                                #Invoke-SophosZap
                             }
                         Else
                             {
                                 Write-Output "Successfully removed $SedAppName"
                                 Test-Eicar
-                                Invoke-SophosZap
+                                #Invoke-SophosZap
                                 $SEDrmCtr = 0
                             }
                         Write-Output "Successfully removed Sophos Endpoint Defense"
                     }catch{
                         Write-Error "Error: Failed to remove Sophos Endpoint Defense"
-                        Invoke-SophosZap
+                        #Invoke-SophosZap
                     }
             }else{
                 Write-Output "    Endpoint Defense Module not found."
                 Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
-                Stop-Transcript
-                exit 4;
+                #Stop-Transcript
+                #exit 4;
             }
     }
 
@@ -351,8 +351,9 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos CryptoGuard",
 "Sophos Clean",
 "Sophos Patch Agent",
-"Sophos System Protection",
-"Sophos SafeGuard Client Configuration",
+"Sophos System Protection"
+
+$NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
 "Sophos SafeGuard Preinstall"
 
@@ -376,6 +377,8 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
+$NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
+Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Test-Eicar
 Invoke-SophosZap
 Stop-Transcript
