@@ -288,7 +288,7 @@ function Get-KeyProtectorId ($BitlockerDrive) {
     #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
     $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
-    while ($Keyprotector.keyprotectorid -lt 1)
+    while ($Keyprotector.keyprotectorid.length -lt 1)
         {
             Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
             $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
@@ -351,10 +351,11 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos CryptoGuard",
 "Sophos Clean",
 "Sophos Patch Agent",
-"Sophos System Protection"<#,
-"Sophos SafeGuard Client Configuration",
+"Sophos System Protection"
+
+$NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
 "Sophos SafeGuard Client",
-"Sophos SafeGuard Preinstall"#>
+"Sophos SafeGuard Preinstall"
 
 
 $RmAttemptCounter = 0
@@ -376,6 +377,8 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
+$NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
+#Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Test-Eicar
 Invoke-SophosZap
 Stop-Transcript
