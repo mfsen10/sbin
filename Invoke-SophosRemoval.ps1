@@ -263,6 +263,7 @@ Function Stop-SophosServices
 
 function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
     #Escrow the key into Azure AD
+    #TODO: add proxy avoidance method
     try {
         BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey 
         #BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
@@ -277,6 +278,7 @@ function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
 
 function Get-KeyProtectorId ($BitlockerDrive) {
     #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
+    #TODO: add condition for when multiple recoverypasswords are assigned to the drive in question. 
     $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
     $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
     while ($Keyprotector.keyprotectorid.length -lt 1)
