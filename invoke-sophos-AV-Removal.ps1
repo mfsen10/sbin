@@ -346,9 +346,6 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Patch Agent",
 "Sophos System Protection"
 
-$NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
-"Sophos SafeGuard Client",
-"Sophos SafeGuard Preinstall"
 
 
 $RmAttemptCounter = 0
@@ -371,6 +368,10 @@ Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
 Test-Eicar
+
+# $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
+# "Sophos SafeGuard Client",
+# "Sophos SafeGuard Preinstall"
 # $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
 # Write-Output "`nSearching for installed SafeGuard Apps..."
 # Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
