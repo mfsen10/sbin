@@ -100,6 +100,7 @@ Function Invoke-MSIrmEngine
                     }Else{
                         Write-Output "Successfully removed $InChamberAppName"
                         $RmAttemptCounter = 0
+                        Test-Eicar
                     }
             }catch{
                 Write-Error "Error: Failed to remove $InChamberAppName"
@@ -115,8 +116,8 @@ Function Remove-SED
             {
                 try 
                     {
-                        $seduninstexe = "C:\Program Files\Sophos\Endpoint Defense\SEDuninstall.exe"
-                        Write-Output "    Attempting to uninstall Sophos Endpoint Defense"
+                        $seduninstexe = "$Env:ProgramFiles\Sophos\Endpoint Defense\SEDuninstall.exe"
+                        Write-Output "    Attempting to uninstall $SedAppName"
                         start-process $sedUninstexe -arg "/silent" -Wait
                         $SEDrmCtr = 1
                         $SEDZombie = $TRUE
@@ -138,12 +139,14 @@ Function Remove-SED
                                 Write-Output "Successfully removed $SedAppName"
                                 $SEDrmCtr = 0
                             }
-                        Write-Output "Successfully removed Sophos Endpoint Defense"
+                        Write-Output "Successfully removed $SedAppName"
+                        Test-Eicar
                     }catch{
-                        Write-Error "Error: Failed to remove Sophos Endpoint Defense"
+                        Write-Error "Error: Failed to remove $SedAppName"
+                        Test-Eicar
                     }
             }else{
-                Write-Output "    Endpoint Defense Module not found."
+                Write-Output "    $SedAppName not found."
                 Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
             }
     }
@@ -261,45 +264,48 @@ Function Stop-SophosServices
         }
     }
 
-function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) {
-    #Escrow the key into Azure AD
-    #TODO: add proxy avoidance method
-    try {
-        BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey 
-        #BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
-        Backup-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
-        Write-Output "`nAttempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
-    } catch {
-        Write-Error "Azure escrow failed, exiting!"
-        Stop-Transcript
-        exit 2
-    }
-}
-
-function Get-KeyProtectorId ($BitlockerDrive) {
-    #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
-    #TODO: add condition for when multiple recoverypasswords are assigned to the drive in question. 
-    $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
-    $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
-    while ($Keyprotector.keyprotectorid.length -lt 1)
-        {
-            Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
-            $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) 
+    {
+        #Escrow the key into Azure AD
+        #TODO: add proxy avoidance method
+        try {
+            BackupToAAD-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey 
+            #BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
+            Backup-BitLockerKeyProtector -MountPoint $BitlockerDrive -KeyProtectorId $BitlockerKey -ErrorAction SilentlyContinue
+            Write-Output "`nAttempted to escrow key in Azure AD AND on-prem AD - Please verify manually!`n"
+        } catch {
+            Write-Error "Azure escrow failed, exiting!"
+            Stop-Transcript
+            exit 2
         }
-    return $KeyProtector.KeyProtectorId
-    #(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
-}
-
-function Test-Bitlocker ($BitlockerDrive) {
-    #Tests the drive for existing Bitlocker keyprotectors
-    try {
-        Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction Stop 
-    } catch {
-        Write-Output "Bitlocker was not found protecting the system drive '$BitlockerDrive'. Terminating script!"
-        Stop-Transcript
-        exit 1
     }
-}
+
+function Get-KeyProtectorId ($BitlockerDrive) 
+    {
+        #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
+        #TODO: add condition for when multiple recoverypasswords are assigned to the drive in question. 
+        $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
+        $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+        while ($Keyprotector.keyprotectorid.length -lt 1)
+            {
+                Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
+                $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+            }
+        return $KeyProtector.KeyProtectorId
+        #(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
+    }
+
+function Test-Bitlocker ($BitlockerDrive) 
+    {
+        #Tests the drive for existing Bitlocker keyprotectors
+        try {
+            Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction Stop 
+        } catch {
+            Write-Output "Bitlocker was not found protecting the system drive '$BitlockerDrive'. Terminating script!"
+            Stop-Transcript
+            exit 1
+        }
+    }
 
 function Invoke-EscrowBitlockerToAAD
     {
@@ -331,7 +337,7 @@ Function Build-Kitchen
         return $KitchenPath;
     }
 
-    #endregion functions
+#endregion functions
 
 #region declarations
 $NamedSophAppRmOrder = "Sophos Remote Management System",
@@ -345,8 +351,6 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos Clean",
 "Sophos Patch Agent",
 "Sophos System Protection"
-
-
 
 $RmAttemptCounter = 0
 $removalctr = 0
@@ -367,7 +371,8 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
-Test-Eicar
+#only do eicar on successful av/sed removals. might exec a few times on msi but at least we get at least one per removal but not ad infinitum on schedTask.
+#Test-Eicar
 
 # $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
 # "Sophos SafeGuard Client",
@@ -375,7 +380,7 @@ Test-Eicar
 # $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
 # Write-Output "`nSearching for installed SafeGuard Apps..."
 # Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
-# Invoke-SophosZap
+Invoke-SophosZap
 Stop-Transcript
 exit 0;
 #endregion execute
