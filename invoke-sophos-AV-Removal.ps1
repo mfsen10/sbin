@@ -376,15 +376,16 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
-#     #region safeguard
-#     $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
-#     "Sophos SafeGuard Client",
-#     "Sophos SafeGuard Preinstall"
-#     $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
-#     Write-Output "`nSearching for installed SafeGuard Apps..."
-#     Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
-#     Invoke-SophosZap
-#     # endregion SafeGuard
+    # #region safeguard
+    # $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
+    # "Sophos SafeGuard Client",
+    # "Sophos SafeGuard Preinstall"
+    # $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
+    # Write-Output "`nSearching for installed SafeGuard Apps..."
+    # Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
+    #   #Invoke-SophosZap
+    #   #can't zap even with safeguard removed, leaving presumably functional code escaped for posterity.
+    # # endregion SafeGuard
 Stop-Transcript
 exit 0;
 #endregion execute
