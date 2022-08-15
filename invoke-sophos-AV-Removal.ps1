@@ -147,7 +147,7 @@ Function Remove-SED
                     }
             }else{
                 Write-Output "    $SedAppName not found."
-                Write-Output "`nNo further Sophos apps are installed as of $(Get-Date)"
+                Write-Output "`nNo further Sophos AV modules found as of $(Get-Date)"
             }
     }
 
