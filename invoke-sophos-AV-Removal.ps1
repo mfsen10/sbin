@@ -380,7 +380,7 @@ Remove-SED
 # $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
 # Write-Output "`nSearching for installed SafeGuard Apps..."
 # Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
-Invoke-SophosZap
+# Invoke-SophosZap
 Stop-Transcript
 exit 0;
 #endregion execute
