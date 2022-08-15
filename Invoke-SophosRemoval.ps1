@@ -156,8 +156,13 @@ Function Invoke-SophosZap
         Write-Output "`n`nAttempting Sophos Zap!!!!"
         #TODO: reduce hold timer
         Write-Warning -Message "Holding here for 30 seconds to cover latency. If you want to Ctrl-C bailout..."
-        Invoke-WebRequest -Uri "https://github.com/mfsen10/bin/raw/main/SophosZap-v1-4-146-20220728.exe" -outfile "$Kitchen\SophosZap.exe" 
-        start-sleep 30
+        $ZapPath = "$Kitchen\SophosZap.exe"
+        $PrevZap = Test-Path $ZapPath
+        if (!$PrevZap)
+            {
+                Invoke-WebRequest -Uri "https://github.com/mfsen10/bin/raw/main/SophosZap-v1-4-146-20220728.exe" -outfile "$Kitchen\SophosZap.exe" 
+                start-sleep 30
+            }
         $ZapLogPath = "$env:temp\SophosZap log.txt"
         $PrevZapLog = Test-Path $ZapLogPath
         if ($PrevZapLog)
@@ -371,16 +376,15 @@ Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
-#only do eicar on successful av/sed removals. might exec a few times on msi but at least we get at least one per removal but not ad infinitum on schedTask.
-#Test-Eicar
-
-$NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
-"Sophos SafeGuard Client",
-"Sophos SafeGuard Preinstall"
-$NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
-Write-Output "`nSearching for installed SafeGuard Apps..."
-Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
-Invoke-SophosZap
+    #region safeguard
+    $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
+    "Sophos SafeGuard Client",
+    "Sophos SafeGuard Preinstall"
+    $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
+    Write-Output "`nSearching for installed SafeGuard Apps..."
+    Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
+    Invoke-SophosZap
+    # endregion SafeGuard
 Stop-Transcript
 exit 0;
 #endregion execute
