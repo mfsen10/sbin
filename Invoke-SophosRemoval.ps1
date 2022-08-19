@@ -285,12 +285,37 @@ function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey)
         }
     }
 
+Function Remove-SuperfluousRecoPasswds
+    {
+
+        $recoverykeysWithPasswds=(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
+        $countKeys=$recoverykeysWithPasswds.count
+        Write-Output "Found $countkeys KeyProtectorID's with an associated RecoveryPassword, attempting to trim to one."
+        while ($countKeys -gt 1)
+            {
+                foreach ($keyprotectorid in $recoverykeysWithPasswds)
+                    {
+                        Remove-BitLockerKeyProtector -mountpoint $env:systemdrive -KeyProtectorId $keyprotectorid
+                    }
+                $countKeys=$recoverykeysWithPasswds.count
+            }
+        BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
+    }
+
 function Get-KeyProtectorId ($BitlockerDrive) 
     {
         #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
         #TODO: add condition for when multiple recoverypasswords are assigned to the drive in question. 
         $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
         $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+        $KeyProtectorCount = $Keyprotector.count
+        if ($KeyProtectorCount -gt 1)
+            {
+                Write-Warning "Too many keyprotector recovery passwords on system drive ($KeyprotectorCount total) `n Exiting after remove-bitlockerkeyprotector on superfluous keys."
+                Remove-SuperfluousRecoPasswds
+                Stop-Transcript
+                exit 14;
+            }
         while ($Keyprotector.keyprotectorid.length -lt 1)
             {
                 Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
@@ -306,9 +331,7 @@ function Test-Bitlocker ($BitlockerDrive)
         try {
             Get-BitLockerVolume -MountPoint $BitlockerDrive -ErrorAction Stop 
         } catch {
-            Write-Output "Bitlocker was not found protecting the system drive '$BitlockerDrive'. Terminating script!"
-            Stop-Transcript
-            exit 1
+            Write-Warning "Bitlocker was not found protecting the system drive '$BitlockerDrive'!"
         }
     }
 
@@ -342,6 +365,31 @@ Function Build-Kitchen
         return $KitchenPath;
     }
 
+Function Get-SenseStatus
+    {
+        Write-Output "Checking Sense (Defender) service status"
+        $senseis = (get-service sense).status
+        Write-Output "Defender Service is $senseis"
+        $sensestatus = $senseis -ne "running"
+        $sensectr = 1
+        while ($sensestatus -and $sensectr -lt 4)
+            {
+                Write-Warning "Attempting to force-start Defender services"
+                Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Sense" -name "Start" -value 2
+                #Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" -name DisableRealtimeMonitoring -value 0
+                set-service -name sense -startuptype automatic
+                Start-Service sense 
+                "sc start sense"|cmd
+                $sensectr++
+            }
+        if ($sensestatus)
+            {
+                Write-Output "Defender is not running, bailing out of Sophos Removal"
+                Stop-Transcript
+                exit 10
+            }
+    }
+
 #endregion functions
 
 #region declarations
@@ -372,6 +420,7 @@ Write-Host "******************************`n`n`n" -ForegroundColor Magenta
 $Kitchen=Build-Kitchen
 Write-Output "Working from $Kitchen"
 Invoke-WriteLog ("`n`nBeginning Sophos Removal Process")
+Get-SenseStatus
 Invoke-EscrowBitlockerToAAD
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
