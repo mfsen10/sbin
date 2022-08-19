@@ -269,7 +269,7 @@ Function Stop-SophosServices
         }
     }
 
-function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) 
+Function Invoke-BitlockerEscrow ($BitlockerDrive,$BitlockerKey) 
     {
         #Escrow the key into Azure AD
         #TODO: add proxy avoidance method
@@ -297,35 +297,36 @@ Function Remove-SuperfluousRecoPasswds
                     {
                         Remove-BitLockerKeyProtector -mountpoint $env:systemdrive -KeyProtectorId $keyprotectorid
                     }
+                $recoverykeysWithPasswds=(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
                 $countKeys=$recoverykeysWithPasswds.count
             }
         BackupToAAD-BitLockerKeyProtector -mountpoint $Env:systemdrive -KeyProtectorID $((((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID)
     }
 
-function Get-KeyProtectorId ($BitlockerDrive) 
+Function Get-KeyProtectorId ($BitlockerDrive) 
     {
-        #fetches the key protector ID of an encrypted system drive where recoveryPassword exists
-        #TODO: add condition for when multiple recoverypasswords are assigned to the drive in question. 
         $BitLockerVolume = Get-BitLockerVolume -MountPoint $BitlockerDrive
         $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
         $KeyProtectorCount = $Keyprotector.count
+        #$BLStatus = (get-bitlockervolume -MountPoint $env:systemdrive).VolumeStatus
         if ($KeyProtectorCount -gt 1)
             {
-                Write-Warning "Too many keyprotector recovery passwords on system drive ($KeyprotectorCount total) `n Exiting after remove-bitlockerkeyprotector on superfluous keys."
+                Write-Warning "Too many keyprotector recovery passwords on system drive ($KeyprotectorCount total)"
                 Remove-SuperfluousRecoPasswds
-                Stop-Transcript
-                exit 14;
-            }
-        while ($Keyprotector.keyprotectorid.length -lt 1)
+        }
+        $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
+        $KeyProtectorCount = $Keyprotector.count
+        if ($KeyProtectorCount -lt 1)
             {
+                Write-Warning "No KeyProtector found for systemdrive, creating one."
                 Add-BitLockerKeyProtector -MountPoint $BitlockerDrive -RecoveryPasswordProtector
                 $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
             }
+        $KeyProtector = $BitLockerVolume.KeyProtector | Where-Object { $_.KeyProtectorType -eq 'RecoveryPassword' } 
         return $KeyProtector.KeyProtectorId
         #(((Get-BitLockerVolume -mountpoint $Env:systemdrive).KeyProtector)|Where-Object {$_.KeyProtectortype -eq 'RecoveryPassword'}).keyProtectorID
     }
-
-function Test-Bitlocker ($BitlockerDrive) 
+Function Test-Bitlocker ($BitlockerDrive) 
     {
         #Tests the drive for existing Bitlocker keyprotectors
         try {
@@ -335,14 +336,14 @@ function Test-Bitlocker ($BitlockerDrive)
         }
     }
 
-function Invoke-EscrowBitlockerToAAD
+Function Invoke-EscrowBitlockerToAAD
     {
         Test-Bitlocker -BitlockerDrive $DriveLetter Out-Null
         $KeyProtectorId = Get-KeyProtectorId -BitlockerDrive $DriveLetter 
         Invoke-BitlockerEscrow -BitlockerDrive $DriveLetter -BitlockerKey $KeyProtectorId
     }
 
-function Invoke-WriteLog ([string]$LogString) 
+Function Invoke-WriteLog ([string]$LogString) 
     {
         $Logfile = ".\SophRM_$env:computername.log"
         $Stamp = (Get-Date).toString("yyyy/MM/dd HH:mm:ss")
