@@ -181,7 +181,7 @@ Function Invoke-SophosZap
 Function Get-InstalledSophosMSI
     {
         Write-Output "Searching for installed Sophos Apps..."
-        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense'"
+        $instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name Like '%Management%'"
         #$instSophApps = Get-CimInstance -property Name,IdentifyingNumber -Class "win32_product" -Filter "Name LIKE 'Sophos%' AND NOT Name='Sophos Endpoint Defense' AND NOT Name LIKE '%safeguard%'"
         $AppCount = $instSophApps.Name.count
         if ($appcount -gt 0)
