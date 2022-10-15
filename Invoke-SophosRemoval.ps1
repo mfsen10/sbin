@@ -434,7 +434,32 @@ Function Get-SenseStatus
                 exit 10
             }
     }
+Function Get-AMrunningStatus 
+    {
+        try 
+            {
+            Get-MpComputerStatus
+            }
+        catch 
+            {
+            {1:Write-Error "Defender/Sense services are not in a servicable state, cannot continue with Sophos removal"; Stop-Transcript; exit 49;}
+         }
 
+        $AMrunningstat=(Get-MpComputerStatus).AMrunningMode
+        if ($AMrunningstat -eq "Not Running")
+            {
+                Write-Error "Sense svc enabled but Defender is not currently running at all, exiting"
+                Stop-Transcript
+                exit 50;
+            }
+        if ($AMrunningstat -ne "Normal" -and $AMrunningstat -ne "EDR Block Mode")
+            {
+                Write-Error "Defender reports an unverified running status - cannot safely remove Sophos AV, exiting"
+                Stop-Transcript
+                exit 50;
+            }
+        Write-Host "Defender status detection gauntlet passed with: $AMrunningstat - beginning sophos removal procedure.`n"
+    }
 #endregion functions
 
 #region declarations
@@ -466,6 +491,7 @@ $Kitchen=Build-Kitchen
 Write-Output "Working from $Kitchen"
 Invoke-WriteLog ("`n`nBeginning Sophos Removal Process")
 Get-SenseStatus
+Get-AMrunningStatus
 
 $tpmpresent = (Get-TPM).tpmpresent
 if ($tpmpresent)
