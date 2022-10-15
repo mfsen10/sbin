@@ -198,7 +198,8 @@ Function Initialize-OrderedSophosMSIsForUninstall
             {
                 $removalctr = 0;
                 Write-Output "    Sophos apps remain installed."
-                Suspend-BitlockerEncx $DriveLetter
+                #Suspend-BitlockerEncx $DriveLetter
+                # guardrails removed, too much end user fuss.
                 Stop-SophosServices
                 foreach ($NamedSophappToRm in $NamedSophAppRmOrder)
                     {
