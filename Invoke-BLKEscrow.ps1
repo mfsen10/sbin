@@ -14,12 +14,13 @@ Function Set-SenseEnabled
         Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WdNisSvc" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
         Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Sense" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
         start-service sense -ErrorAction SilentlyContinue
-        start-service windefend -ErrorAction SilentlyContinue        
+        start-service windefend -ErrorAction SilentlyContinue
+        .\WindowsDefenderATPOnboardingScript.cmd
         $mdePlatVer = (get-mpcomputerstatus).AMProductVersion
-        if ($mdePlatVer -ne "4.18.2301.6")
+        if ($mdePlatVer -ne "4.18.2302.7")
         {
             set-location "C:\sophRM"
-            write-warning "AV Platform Version not current 4.18.2301.6 (is $mdePlatVer)"
+            write-warning "AV Platform Version not current 4.18.2302.7 (is $mdePlatVer)"
             $StepVer = Test-Path "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"
             if (!$StepVer){
                 invoke-webrequest "https://catalog.s.download.windowsupdate.com/c/msdownload/update/software/updt/2020/02/updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe" -outfile "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
@@ -27,11 +28,11 @@ Function Set-SenseEnabled
             Start-Process "AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
             #Invoke-WebRequest "https://catalog.s.download.windowsupdate.com/d/msdownload/update/software/defu/2022/11/updateplatform_b5a2679b058450feb68b78736e525f8f5ac657fb.exe" -outfile "C:\sophRm\AMD64_2211.5-updateplatform_b5a2679b058450feb68b78736e525f8f5ac657fb.exe"|Wait-Process
             #start-process .\AMD64_2211.5-updateplatform_b5a2679b058450feb68b78736e525f8f5ac657fb.exe|wait-process
-            $CurrVer = Test-Path "C:\sophRm\AMD64_2301.6-updateplatform_cca39b7c461f636e4d94fa20ac9ee842ae7a9caf.exe"
+            $CurrVer = Test-Path "C:\sophRm\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe"
             if (!$CurrVer) {
-                Invoke-WebRequest "https://catalog.s.download.windowsupdate.com/c/msdownload/update/software/defu/2023/01/updateplatform_cca39b7c461f636e4d94fa20ac9ee842ae7a9caf.exe" -outfile "C:\sophRm\AMD64_2301.6-updateplatform_cca39b7c461f636e4d94fa20ac9ee842ae7a9caf.exe" |Wait-Process
+                Invoke-WebRequest "https://catalog.s.download.windowsupdate.com/d/msdownload/update/software/defu/2023/03/updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe" -outfile "C:\sophRm\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe" |Wait-Process
             }
-            start-process ".\AMD64_2301.6-updateplatform_cca39b7c461f636e4d94fa20ac9ee842ae7a9caf.exe"|wait-process
+            start-process ".\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe"|wait-process
         }else{
             Write-Output "MDE AV Platform Version current as of 2023\02\14 ($mdePlatVer)"
         }
