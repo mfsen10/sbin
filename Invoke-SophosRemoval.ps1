@@ -579,6 +579,22 @@ if ($onWorkstation)
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
+
+$HMPx86exists = Test-path "$env:systemdrive\Program Files (x86)\HitmanPro.Alert\Uninstall.exe"
+if ($HMPx86exists){
+    Start-Process "$env:systemdrive\Program Files (x86)\HitmanPro.Alert\Uninstall.exe" /quiet |wait-process
+    write-host "Removed Sophos Hitman Pro"
+}
+
+$SophCleanExists = Test-path "$env:systemdrive\Program Files\Sophos\Clean\uninstall.exe"
+if ($SophCleanExists){
+    Start-Process "$env:systemdrive\Program Files\Sophos\Clean\uninstall.exe" /quiet |wait-process
+    write-host "Removed Sophos Clean"
+}
+
+
+
+
 if ($onWorkstation) 
     {
         #region safeguard
