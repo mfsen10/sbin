@@ -425,7 +425,8 @@ Function Get-SenseStatus
         $sensectr = 1
         while ($senseStuck -and $sensectr -lt 4)
             {
-                start-process .\WindowsDefenderATPOnboardingScript.cmd -erroraction SilentlyContinue |Wait-Process 
+                Invoke-DefenderPatch
+                Start-Process .\WindowsDefenderATPOnboardingScript.cmd -erroraction SilentlyContinue |Wait-Process
                 Set-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows Defender" "DisableRoutinelyTakingAction" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" 0 -ErrorAction SilentlyContinue
@@ -440,10 +441,10 @@ Function Get-SenseStatus
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WdNisSvc" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
                 stop-service -DisplayName "Soph*" -force -ErrorAction SilentlyContinue
-        
+                
                 $sensectr++
             }
-        #.\WindowsDefenderATPOnboardingScript.cmd    
+        
         if ($senseStuck)
             {
                 Write-Output "Defender EDR is not running, bailing out of Sophos Removal"
@@ -517,7 +518,7 @@ Function Get-AMrunningStatus
         $IntendedTampProtSource = "ATP"
         $CurTampProtSource = (Get-MpComputerStatus).TamperProtectionSource
         if ($CurTampProtSource -ne $IntendedTampProtSource) {
-            Write-Host "Defender is not yet maintained by Arc Policy"
+            Write-Host "Defender is not yet maintained by Azure Policy"
             Stop-Transcript
             exit 570;
         }else {
