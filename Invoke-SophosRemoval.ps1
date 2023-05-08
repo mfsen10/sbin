@@ -566,7 +566,6 @@ if ($prodname -like "*server*")
 $Kitchen=Build-Kitchen
 Write-Output "Working from $Kitchen"
 Invoke-WriteLog ("`n`nBeginning Sophos Removal Process")
-Get-AMrunningStatus
 if ($onWorkstation)
 {
     $tpmpresent = (Get-TPM).tpmpresent
@@ -574,8 +573,9 @@ if ($onWorkstation)
         {
             Invoke-EscrowBitlockerToAAD
         }
+    Get-SenseStatus
 }
-
+Get-AMrunningStatus
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
