@@ -41,7 +41,7 @@ Function Remove-MSIPkg
         $arglist = "/X $MarkedAppGUID /qn /norestart /L*v $NamedLogfile"
         Write-Output "`n    Removing via $MSIexec $arglist"
         $msiserveris = $(get-service msiserver).status
-        if  ($msiserver -ne "Running")
+        if  ($msiserveris -ne "Running")
             {
                 start-service msiserver
             }
@@ -421,141 +421,108 @@ Function Get-SenseStatus
         Write-Output "Checking Sense (EDR) service status"
         $senseis = (get-service sense).status
         Write-Output "Defender Service is $senseis"
-        $sensestatus = $senseis -ne "running"
+        $senseStuck = $senseis -ne "running"
         $sensectr = 1
-        while ($sensestatus -and $sensectr -lt 4)
+        while ($senseStuck -and $sensectr -lt 4)
             {
+                start-process .\WindowsDefenderATPOnboardingScript.cmd -erroraction SilentlyContinue |Wait-Process 
                 Set-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows Defender" "DisableRoutinelyTakingAction" 0 -ErrorAction SilentlyContinue
-                Set-ItemProperty "HKLM:\SOFTWARE\Wow6432Node\Policies\Microsoft\Windows Defender\Real-Time Protection" "DisableRealtimeMonitoring" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" "DisableAntiSpyware" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender" "DisableRoutinelyTakingAction" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SOFTWARE\Policies\Microsoft\Windows Defender\Real-Time Protection" "DisableRealtimeMonitoring" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Sense" "Start" 2 -ErrorAction SilentlyContinue
-                start-service sense -ErrorAction SilentlyContinue
-                Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend" "Start" 2 -ErrorAction SilentlyContinue
+                start-service sense -ErrorAction SilentlyContinue                
+                Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend" "Start" 2 -ErrorAction SilentlyContinue                
                 start-service windefend -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WdNisSvc" "Start" 3 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\SecurityHealthService" "Start" 3 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WinDefend" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
                 Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\WdNisSvc" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
-                Set-ItemProperty "HKLM:\SYSTEM\CurrentControlSet\Services\Sense" "AutorunsDisabled" 0 -ErrorAction SilentlyContinue
-                set-service "Sophos AutoUpdate Service" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos AutoUpdate Service" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos AutoUpdate Service" -erroraction SilentlyContinue
-                set-service "Sophos Clean Service" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos Clean Service" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos Clean Service" -erroraction SilentlyContinue
-                set-service "Sophos Web Control Service" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos Web Control Service" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos Web Control Service" -erroraction SilentlyContinue
-                set-service "Sophos Message Router" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos Message Router" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos Message Router" -erroraction SilentlyContinue
-                set-service "Sophos Endpoint Defense Service" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos Endpoint Defense Service" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos Endpoint Defense Service" -erroraction SilentlyContinue
-                set-service "Sophos Agent" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos Agent" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos Agent" -erroraction SilentlyContinue
-                set-service "Sophos System Protection Service" -StartupType Disabled  -erroraction SilentlyContinue
-                set-service "Sophos System Protection Service" -status stopped  -erroraction SilentlyContinue
-                stop-service "Sophos System Protection Service" -erroraction SilentlyContinue
-                set-service "SAVAdminService" -startuptype disabled -erroraction SilentlyContinue
-                set-service "SAVAdminService" -status stopped -erroraction SilentlyContinue
-                stop-service "SAVAdminService" -erroraction SilentlyContinue
-                set-service "SAVService" -startuptype disabled -erroraction SilentlyContinue
-                set-service "SAVService" -status stopped -erroraction SilentlyContinue
-                stop-service "SAVService" -erroraction SilentlyContinue
-                set-service "SntpService" -startuptype disabled -erroraction SilentlyContinue
-                set-service "SntpService" -status stopped -erroraction SilentlyContinue
-                stop-service "SntpService" -erroraction SilentlyContinue
-                set-service "swi_filter" -startuptype disabled -erroraction SilentlyContinue
-                set-service "swi_filter" -status stopped -erroraction SilentlyContinue
-                stop-service "swi_filter" -erroraction SilentlyContinue
-                set-service "swi_service" -startuptype disabled -erroraction SilentlyContinue
-                set-service "swi_service" -status stopped -erroraction SilentlyContinue
-                stop-service "swi_service" -erroraction SilentlyContinue
-
-                $mdePlatVer = (get-mpcomputerstatus).AMProductVersion
-                .\WindowsDefenderATPOnboardingScript.cmd
-                if ($mdePlatVer -ne "4.18.2302.7")
-                {
-                    set-location "C:\sophRM"
-                    write-warning "AV Platform Version not current 4.18.2302.7 (is $mdePlatVer)"
-                    $StepVer = Test-Path "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"
-                    if (!$StepVer){
-                        invoke-webrequest "https://catalog.s.download.windowsupdate.com/c/msdownload/update/software/updt/2020/02/updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe" -outfile "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
-                    }
-                    Start-Process "AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
-
-                    $CurrVer = Test-Path "C:\sophRm\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe"
-                    if (!$CurrVer) {
-                        Invoke-WebRequest "https://catalog.s.download.windowsupdate.com/d/msdownload/update/software/defu/2023/03/updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe" -outfile "C:\sophRm\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe" |Wait-Process
-                    }
-                    start-process ".\updateplatform.arm64fre_63419439d3a869f162f5f9e892cf40b082b7e8b3.exe"|wait-process
-                }else{
-                    Write-Output "MDE AV Platform Version current as of 2023\03\27 ($mdePlatVer)"
-                }
+                stop-service -DisplayName "Soph*" -force -ErrorAction SilentlyContinue
         
                 $sensectr++
             }
-        .\WindowsDefenderATPOnboardingScript.cmd    
-        if ($sensestatus)
+        #.\WindowsDefenderATPOnboardingScript.cmd    
+        if ($senseStuck)
             {
                 Write-Output "Defender EDR is not running, bailing out of Sophos Removal"
                 Stop-Transcript
                 exit 10
             }
     }
+Function invoke-DefenderPatch
+{
+    $knownCurrVer = "4.18.2303.8"
+    $knownFutureVer = "4.18.2304.8"
+    $mdePlatVer = (get-mpcomputerstatus).AMProductVersion
+    if ($mdePlatVer -ne $knownCurrVer -and $mdePlatVer -ne $knownFutureVer)
+    {
+        set-location "C:\sophRM"
+        write-warning "AV Platform Version not current $knownCurrVer (is $mdePlatVer)"
+        $StepVer = Test-Path "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"
+        if (!$StepVer){
+            invoke-webrequest "https://catalog.s.download.windowsupdate.com/c/msdownload/update/software/updt/2020/02/updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe" -outfile "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
+        }
+        Start-Process "AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
+
+        $CurrVer = Test-Path "C:\sophRm\updateplatform.amd64fre_33e1a08528e8ce9f25f67d8a78f373cc737be029.exe"
+        if (!$CurrVer) {
+            Invoke-WebRequest "https://catalog.s.download.windowsupdate.com/c/msdownload/update/software/defu/2023/03/updateplatform.amd64fre_33e1a08528e8ce9f25f67d8a78f373cc737be029.exe" -outfile "C:\sophRm\updateplatform.amd64fre_33e1a08528e8ce9f25f67d8a78f373cc737be029.exe" |Wait-Process
+        }
+        start-process "C:\sophRm\updateplatform.amd64fre_33e1a08528e8ce9f25f67d8a78f373cc737be029.exe"|wait-process
+    }else{
+        Write-Output "MDE AV Platform Version current as of 2023\04\27 ($mdePlatVer)"
+    }
+}
+
 Function Get-AMrunningStatus 
     {
+        start-service winDefend -errorAction silentlyContinue
         try 
             {
-            Get-MpComputerStatus
+                Get-MpComputerStatus
             }
         catch 
             {
-            {1:Write-Error "Defender/Sense services are not in a servicable state, cannot continue with Sophos removal"; Stop-Transcript; exit 49;}
-         }
-
-        start-service winDefend -errorAction silentlyContinue
+                {1: start-service windefend --erroraction silentlyContinue; Write-Error "Defender/Sense services are not in a servicable state, cannot continue with Sophos removal"; Stop-Transcript; exit 49;}
+            }
         $AMrunningstat=(Get-MpComputerStatus).AMrunningMode
         if ($AMrunningstat -eq "Not Running")
             {
-                .\WindowsDefenderATPOnboardingScript.cmd
-                Write-Error "Sense EDR enabled but DefenderAV is not currently running, needs platform patch."
+                #.\WindowsDefenderATPOnboardingScript.cmd
+                Write-Error "Defender AV is not currently running, may need platform patch. Attempting..."
+                Start-Service winDefend -ErrorAction SilentlyContinue
+                invoke-DefenderPatch                     
+                Start-Service winDefend -ErrorAction SilentlyContinue
                 Stop-Transcript
                 exit 50;
             }
+        
+        $AMrunningstat=(Get-MpComputerStatus).AMrunningMode
+        if( $AMrunningStat -eq "Passive Mode")
+            {
+                Write-Host "Defender found in Passive Mode, needs latest platform patch. Attempting..."
+                invoke-DefenderPatch
+            }
+        
+        $AMrunningstat=(Get-MpComputerStatus).AMrunningMode
         if ($AMrunningstat -ne "Normal" -and $AMrunningstat -ne "EDR Block Mode" -and $AMrunningStat -ne "Passive Mode")
             {
                 Write-Error "Defender reports an unverified running status - cannot safely remove Sophos AV, exiting"
                 Stop-Transcript
                 exit 50;
             }
-        if( $AMrunningStat -eq "Passive Mode")
-            {
-                if ($mdePlatVer -ne "4.18.2302.7")
-                {
-                    set-location "C:\sophRM"
-                    write-warning "AV Platform Version not current 4.18.2302.7 (is $mdePlatVer)"
-                    $StepVer = Test-Path "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"
-                    if (!$StepVer){
-                        invoke-webrequest "https://catalog.s.download.windowsupdate.com/c/msdownload/update/software/updt/2020/02/updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe" -outfile "C:\sophRm\AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
-                    }
-                    Start-Process "AMD64_2001.10-updateplatform_0456e6719c3ee098af03b785230ac020643fa1ac.exe"|Wait-Process
-
-                    $CurrVer = Test-Path "C:\sophRm\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe"
-                    if (!$CurrVer) {
-                        Invoke-WebRequest "https://catalog.s.download.windowsupdate.com/d/msdownload/update/software/defu/2023/03/updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe" -outfile "C:\sophRm\updateplatform.amd64fre_49ae332066b90797a96dbefdd8e18b95b294da83.exe" |Wait-Process
-                    }
-                    start-process ".\updateplatform.arm64fre_63419439d3a869f162f5f9e892cf40b082b7e8b3.exe"|wait-process
-                }else{
-                    Write-Output "MDE AV Platform Version current as of 2023\03\27 ($mdePlatVer)"
-                }
-            }
-        Write-Host "Defender status detection gauntlet passed with: $AMrunningstat - beginning sophos removal procedure.`n"
+        
+        $IntendedTampProtSource = "ATP"
+        $CurTampProtSource = (Get-MpComputerStatus).TamperProtectionSource
+        if ($CurTampProtSource -ne $IntendedTampProtSource) {
+            Write-Host "Defender is not yet maintained by Arc Policy"
+            Stop-Transcript
+            exit 570;
+        }else {
+            Write-Host "Defender status detection gauntlet passed with: $AMrunningstat, policy confirmed via $CurTampProtSource - beginning sophos removal procedure.`n"
+        }
     }
 #endregion functions
 
@@ -570,7 +537,8 @@ $NamedSophAppRmOrder = "Sophos Remote Management System",
 "Sophos CryptoGuard",
 "Sophos Clean",
 "Sophos Patch Agent",
-"Sophos System Protection"
+"Sophos System Protection",
+"Sophos CryptoGuard"
 
 $RmAttemptCounter = 0
 $removalctr = 0
@@ -580,6 +548,16 @@ Clear-Host
 Write-Host "******************************" -ForegroundColor Magenta
 Write-Host "** Sophos uninstall script. **" -ForegroundColor Magenta
 Write-Host "******************************`n`n`n" -ForegroundColor Magenta
+
+$prodName = (get-itemproperty "HKLM:\\SOFTWARE\Microsoft\Windows NT\CurrentVersion\").ProductName
+if ($prodname -like "*server*") 
+    {
+        $onWorkstation = $FALSE;
+        Write-Output "Detected $prodName as Server platform, disabling workstation tasks from queue"
+    }else{
+        $OnWorkstation = $TRUE;
+        Write-Output "Detected $prodName as Workstation platform, enabling workstation tasks to queue"
+    }
 #endregion declarations
 
 
@@ -587,28 +565,32 @@ Write-Host "******************************`n`n`n" -ForegroundColor Magenta
 $Kitchen=Build-Kitchen
 Write-Output "Working from $Kitchen"
 Invoke-WriteLog ("`n`nBeginning Sophos Removal Process")
-Get-SenseStatus
 Get-AMrunningStatus
-
-$tpmpresent = (Get-TPM).tpmpresent
-if ($tpmpresent)
-    {
-        Invoke-EscrowBitlockerToAAD
-    }
+if ($onWorkstation)
+{
+    $tpmpresent = (Get-TPM).tpmpresent
+    if ($tpmpresent)
+        {
+            Invoke-EscrowBitlockerToAAD
+        }
+}
 
 Write-Output "`nSearching for installed Sophos Apps..."
 Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
 Remove-SED
-    #region safeguard
-    $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
-    "Sophos SafeGuard Client",
-    "Sophos SafeGuard Preinstall"
-    $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
-    Write-Output "`nSearching for installed SafeGuard Apps..."
-    Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
-    #Invoke-SophosZap
-    #can't zap even with safeguard removed, leaving presumably functional code escaped for posterity.
-    # endregion SafeGuard
+if ($onWorkstation) 
+    {
+        #region safeguard
+        $NamedSafeGuardAppRmOrder = "Sophos SafeGuard Client Configuration",
+        "Sophos SafeGuard Client",
+        "Sophos SafeGuard Preinstall"
+        $NamedSophAppRmOrder = $NamedSafeGuardAppRmOrder
+        Write-Output "`nSearching for installed SafeGuard Apps..."
+        Initialize-OrderedSophosMSIsForUninstall $(Get-InstalledSophosMSI)
+        #Invoke-SophosZap
+        #can't zap even with safeguard removed, leaving presumably functional code escaped for posterity.
+        # endregion SafeGuard
+    }
 Stop-Transcript
 exit 0;
 #endregion execute
